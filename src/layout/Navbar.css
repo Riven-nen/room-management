@@ -1,0 +1,44 @@
+.navbar-container {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width); /* index.css */
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+    box-sizing: border-box;
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-left h1 {
+    padding-left: 15px;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.navbar-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.navbar-search-bar svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.navbar-search-bar input {
+    padding-left: 35px;
+    height: 30px;
+}

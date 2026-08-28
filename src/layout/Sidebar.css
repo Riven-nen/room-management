@@ -1,0 +1,81 @@
+.sidebar-container {
+    width: var(--sidebar-width);
+    background-color: #071f5c;
+    height: 100vh;
+    color: #f1f5f9;
+    font-family: 'Inter', sans-serif;
+}
+
+.sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+}
+
+.sidebar-title img {
+    width: 46px;
+    height: 46px;
+}
+
+.sidebar-title h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.sidebar-items ul {
+    margin: 12px 0 0;
+    padding: 0 20px;
+}
+
+.sidebar-items li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #dbe4f0;
+}
+
+.sidebar-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    padding: 16px 20px;
+}
+
+.new-booking {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: #f5c542;
+    color: #071f5c;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 14px;
+    padding: 8px;
+    border: none;
+    background: none;
+    color: #dbe4f0;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+}

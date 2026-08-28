@@ -2,3 +2,21 @@ body {
     margin: 0;
     padding: 0;
 }
+
+h1 {
+    color: #0d286d;
+}
+
+.app-layout {
+    display: flex;
+    align-items: start;
+}
+
+.main-container {
+    flex: 1;
+}
+
+:root {
+    --sidebar-width: 250px;
+    font-family: 'Inter', sans-serif;
+}
