@@ -1,6 +1,7 @@
 body {
     margin: 0;
     padding: 0;
+    background-color: #f4f5f9;
 }
 
 h1 {
@@ -14,9 +15,11 @@ h1 {
 
 .main-container {
     flex: 1;
+    padding-top: var(--navbar-height);
 }
 
 :root {
     --sidebar-width: 250px;
+    --navbar-height: 60px;
     font-family: 'Inter', sans-serif;
 }

@@ -7,6 +7,8 @@
     justify-content: space-between;
     padding: 0 8px;
     box-sizing: border-box;
+    height: var(--navbar-height);
+    border-bottom: 3px solid #d9dee8;
 }
 
 .navbar-left {
@@ -40,5 +42,12 @@
 
 .navbar-search-bar input {
     padding-left: 35px;
-    height: 30px;
+    height: 40px;
+    border-radius: 16px;
+}
+
+.divider {
+    width: 2px;
+    height: 20px;
+    background-color: #d9dee8;
 }

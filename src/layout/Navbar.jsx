@@ -1,5 +1,5 @@
 import './Navbar.css'
-import { Search, Menu, BellIcon, Settings, CircleUserRound } from 'lucide-react'
+import { Search, Menu, BellIcon, CircleQuestionMark, CircleUserRound, SeparatorVertical } from 'lucide-react'
 
 function Navbar() {
     return (
@@ -12,11 +12,13 @@ function Navbar() {
                 <div className="navbar-right">
                     <div className="navbar-search-bar">
                         <Search/>
-                        <input type="text" placeholder="Search"/>
+                        <input type="text" placeholder="Search Activities..."/>
                     </div>
                     <BellIcon/>
-                    <Settings/>
+                    <CircleQuestionMark/>
+                    <div className="divider"></div>
                     <CircleUserRound size={32} aria-label="User profile" />
+                    <p>Placeholder Name</p>
                 </div>
             </div>
         </>

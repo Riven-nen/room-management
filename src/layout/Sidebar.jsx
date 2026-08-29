@@ -1,6 +1,6 @@
 import './Sidebar.css'
 import logo from '../assets/logo.png'
-import {LayoutDashboardIcon, LogOut} from 'lucide-react'
+import {LayoutDashboardIcon, LogOut, BookIcon, Calendar, RobotArm, Settings, ChartColumn, ChartBar} from 'lucide-react'
 function Sidebar() {
     return (
         <>
@@ -11,12 +11,12 @@ function Sidebar() {
                 </div>
                 <div className="sidebar-items">
                     <ul>
-                        <li><LayoutDashboardIcon/> Placeholder</li>
-                        <li><LayoutDashboardIcon/> Placeholder</li>
-                        <li><LayoutDashboardIcon/> Placeholder</li>
-                        <li><LayoutDashboardIcon/> Placeholder</li>
-                        <li><LayoutDashboardIcon/> Placeholder</li>
-                        <li><LayoutDashboardIcon/> Placeholder</li>
+                        <li><LayoutDashboardIcon/> Dashboard</li>
+                        <li><BookIcon/> Laboratory Booking</li>
+                        <li><Calendar/> Schedule Viewer</li>
+                        <li><RobotArm/> Lab Management</li>
+                        <li><ChartBar/> Analytics Reports</li>
+                        <li><Settings/> Settings</li>
                     </ul>
 
                 </div>
