@@ -4,6 +4,9 @@
     height: 100vh;
     color: #f1f5f9;
     font-family: 'Inter', sans-serif;
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
 }
 
 .sidebar-title {

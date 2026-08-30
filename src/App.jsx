@@ -3,6 +3,7 @@ import Navbar from "./layout/Navbar.jsx"
 import Sidebar from "./layout/Sidebar.jsx"
 import Card from "./mainpage/Card.jsx"
 import "./index.css"
+import Dashboard from "./mainpage/Dashboard.jsx"
 
 function App() {
   return (
@@ -11,7 +12,9 @@ function App() {
         <Sidebar/>
         <div className="main-container">
           <Navbar/>
-          <Card/>
+          <div className="main-content">
+            <Dashboard/>
+          </div>
         </div>
       </div>
 

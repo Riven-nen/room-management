@@ -9,6 +9,8 @@
     box-sizing: border-box;
     height: var(--navbar-height);
     border-bottom: 3px solid #d9dee8;
+    background-color: #f4f5f9;
+    z-index: 1000;
 }
 
 .navbar-left {

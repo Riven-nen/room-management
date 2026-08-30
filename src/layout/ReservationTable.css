@@ -1,0 +1,84 @@
+.reservation-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.reservation-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reservation-table th,
+.reservation-table td {
+    padding: 14px 16px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.reservation-table th {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.reservation-table td {
+    font-size: 14px;
+}
+
+.reservation-table tbody tr {
+    border-top: 1px solid #e5e5e5;
+}
+
+.status {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.active {
+    background: #dff5e5;
+    color: #218838;
+}
+
+.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.completed {
+    background: #e8e8e8;
+    color: #555;
+}
+
+.view-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.reservation-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.reservation-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.action-check {
+    color: #218838;
+    background: #dff5e5;
+}
+
+.action-x {
+    color: #dc3545;
+    background: #f8d7da;
+}

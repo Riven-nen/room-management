@@ -1,0 +1,136 @@
+.dashboard-title {
+    display: flex;
+    justify-content: space-between;
+}
+
+.dashboard-title {
+    width: 100%;
+}
+
+.dashboard-title-left h1, label {
+    margin: 0;
+}
+
+.dashboard-title-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dashboard-title-left label {
+    color: #c1af6d;
+}
+
+.dashboard-title-date {
+    width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 6px;
+    height: 40px;
+    gap: 4px;
+    border: 2px solid #cccdd1;
+    color: #3d5d89;
+    font-weight: bold;
+}
+
+.dashboard-title-export {
+    width: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #00195c;
+    height: 40px;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    gap: 4px;
+}
+
+.dashboard-content {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    grid-auto-rows: 200px;
+}
+
+.dashboard-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: start;
+}
+
+.dashboard-stats p {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+.dashboard-stats h2 {
+    color: #3d5d89;
+}
+
+.dashboard-stats-title-number {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-stats-title-number p,
+.dashboard-stats-title-number h2 {
+    margin: 2px;
+}
+
+.dashboard-bookings-icon {
+    background-color: #fdfeff;
+    padding: 16px;
+}
+
+.dashboard-stats-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.icon-book, .icon-gauge {
+    background-color: #c6d9ff;
+}
+
+.icon-calendar {
+    background-color: #f8edc5;
+}
+
+.dashboard-alerts {
+    background-color: #ffdad6;
+    color: #b55d6e !important;
+    border: 1px solid #b55d6e;
+}
+
+.dashboard-alerts h2 {
+    color: #b55d6e;
+}
+
+.dashboard-barchart-title {
+    margin: 0;
+    color: #00195c;
+}
+
+.dashboard-pending-reservation-title {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dashboard-conflict-log-title {
+    color: #bb4044;
+    margin: 0;
+}

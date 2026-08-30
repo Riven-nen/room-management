@@ -1,0 +1,55 @@
+.circle-chart {
+    width: 100%;
+    height: 100%;
+}
+
+.circle-chart-graph {
+    position: relative;
+    width: 100%;
+    height: 250px;
+}
+
+.circle-chart-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.circle-chart-center h2 {
+    margin: 0;
+}
+
+.circle-chart-center p {
+    margin: 4px 0 0;
+}
+
+.circle-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 20px;
+}
+
+.circle-chart-legend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.circle-chart-legend-item p {
+    margin: 0;
+}
+
+.circle-chart-legend-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.circle-chart-legend-name span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
