@@ -5,7 +5,7 @@ import {
     ResponsiveContainer
 } from 'recharts'
 
-import '../mainpage/CircleChart.css'
+import './CircleChart.css'
 
 function CircleChart({ data }) {
     const colors = ['#041c59', '#ffc641', '#041c59']
