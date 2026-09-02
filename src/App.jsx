@@ -7,6 +7,7 @@ import Dashboard from "./mainpage/Dashboard.jsx"
 import LabManagement from "./mainpage/LabManagement.jsx"
 import Announcements from "./mainpage/Announcements.jsx"
 import Settings from "./mainpage/Settings.jsx"
+import ScheduleViewer from "./mainpage/ScheduleViewer.jsx"
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
         <div className="main-container">
           <Navbar/>
           <div className="main-content">
-            <Settings/>
+            <ScheduleViewer/>
           </div>
         </div>
       </div>
