@@ -5,6 +5,8 @@ import Card from "./mainpage/Card.jsx"
 import "./index.css"
 import Dashboard from "./mainpage/Dashboard.jsx"
 import LabManagement from "./mainpage/LabManagement.jsx"
+import Announcements from "./mainpage/Announcements.jsx"
+import Settings from "./mainpage/Settings.jsx"
 
 function App() {
   return (
@@ -14,7 +16,7 @@ function App() {
         <div className="main-container">
           <Navbar/>
           <div className="main-content">
-            <LabManagement/>
+            <Settings/>
           </div>
         </div>
       </div>
