@@ -8,6 +8,8 @@ import LabManagement from "./mainpage/LabManagement.jsx"
 import Announcements from "./mainpage/Announcements.jsx"
 import Settings from "./mainpage/Settings.jsx"
 import ScheduleViewer from "./mainpage/ScheduleViewer.jsx"
+import AnalyticsReports from "./mainpage/AnalyticsReports.jsx"
+import Reservation from "./mainpage/Reservation.jsx"
 
 function App() {
   return (
@@ -17,7 +19,7 @@ function App() {
         <div className="main-container">
           <Navbar/>
           <div className="main-content">
-            <ScheduleViewer/>
+            <Reservation/>
           </div>
         </div>
       </div>
