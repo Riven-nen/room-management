@@ -1,11 +1,12 @@
 import './Login.css'
 import logo from '../assets/logo.png'
-import {useState} from 'react'
-
+import {useState, useContext} from 'react'
+import {UserContext} from './UserContext.jsx'
 
 function Login() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const {user, setUser} = useContext(UserContext)
 
     const handleSubmit = async (event) => {
         event.preventDefault()
@@ -17,6 +18,7 @@ function Login() {
             headers: {
                 "Content-Type": "application/json"
             },
+            credentials: "include",
             body: JSON.stringify({
                 email,
                 password
@@ -26,6 +28,9 @@ function Login() {
         const data = await response.json()
 
         console.log(data)
+        if (response.ok) {
+            setUser(data.user)
+        }
     }
 
     return (

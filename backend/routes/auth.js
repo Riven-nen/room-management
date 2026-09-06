@@ -25,15 +25,18 @@ router.post("/login", (req, res) => {
 
     if (!user) {
         return res.status(401).json({
-            message: "Invalid email or password"
+            message: "Invalid email or passwordb"
         })
     }
 
     if (user.password !== password) {
         return res.status(401).json({
-            message: "Invalid email or password"
+            message: "Invalid email or passworda"
         })
     }
+
+    req.session.userId = user.id
+    console.log(req.session)
 
     res.json({
         message: "Login successful",
@@ -43,4 +46,14 @@ router.post("/login", (req, res) => {
         }
     })
 })
+
+
+router.get("/me", (req, res) => {
+    const user = users.find(user => user.id === req.session.userId)
+
+    res.json({
+        user : user
+    })
+})
+
 module.exports = router

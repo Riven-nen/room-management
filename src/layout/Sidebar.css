@@ -33,7 +33,12 @@
     padding: 0 20px;
 }
 
-.sidebar-items li {
+li {
+    list-style: none;
+}
+
+.sidebar-items button {
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -43,6 +48,24 @@
     font-size: 14px;
     font-weight: 500;
     color: #dbe4f0;
+    background-color: transparent;
+    border: 0;
+    cursor:pointer;
+}
+
+button.active {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #dbe4f0;
+    background-color: #1d3369;
+    border-left: 4px solid #f5c542;
+    cursor:pointer;
 }
 
 .sidebar-container {
