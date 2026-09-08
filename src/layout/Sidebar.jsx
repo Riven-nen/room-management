@@ -1,8 +1,27 @@
 import './Sidebar.css'
 import logo from '../assets/logo.png'
 import { LayoutDashboardIcon, LogOut, BookIcon, Calendar, RobotArm, Settings, ChartBar } from 'lucide-react'
+import {UserContext} from '../auth/UserContext.jsx'
+import {useContext} from 'react'
 
 function Sidebar({ page, setPage }) {
+    const {setUser} = useContext(UserContext)
+
+    const handleLogout = async (event) => {
+        event.preventDefault()
+
+        console.log("LOGOUT FIRED")
+
+        await fetch(
+            "http://localhost:3000/api/auth/logout",
+            {
+                method: "POST"
+            }
+        )
+
+        setUser(null)
+    }
+
     return (
         <div className="sidebar-container">
             <div className="sidebar-title">
@@ -70,7 +89,7 @@ function Sidebar({ page, setPage }) {
 
             <div className="sidebar-bottom">
                 <button className="new-booking">+ New Booking</button>
-                <button className="logout">
+                <button className="logout" onClick={handleLogout}>
                     <LogOut size={18} />
                     Log Out
                 </button>
