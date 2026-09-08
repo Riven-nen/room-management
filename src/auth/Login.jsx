@@ -41,14 +41,6 @@ function Login() {
                 <h1 id="login-title">LCUP Laboratory</h1>
                 <form className="login-form" onSubmit={handleSubmit}>
                     <div className="prompt-label-box">
-                        <label for="account">I am a...</label>
-                        <select id="account" className="prompt-box">
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                        </select>
-                    </div>
-                    
-                    <div className="prompt-label-box">
                         <label for="email">Email Address</label>
                         <input 
                             type="email" 
