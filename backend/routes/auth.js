@@ -55,7 +55,7 @@ router.get("/register", async (req, res) => {
 })
 
 router.get("/me", async (req, res) => {
-    const rows = await db.query("SELECT * FROM users where id = $!", [req.session.id])
+    const { rows } = await db.query("SELECT * FROM users where id = $1", [req.session.userId])
     const user = rows[0]
 
     res.json({
