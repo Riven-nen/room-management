@@ -1,6 +1,7 @@
 const express = require("express")
 const cors = require("cors")
 const authRoutes = require("./routes/auth")
+const labRoutes = require("./routes/lab.js")
 const session = require("express-session")
 const pool = require("./db.js")
 const app = express()
@@ -19,6 +20,7 @@ app.use(session({
 }))
 
 app.use("/api/auth", authRoutes)
+app.use("/api/lab", labRoutes)
 
 app.listen(3000, () => {
     console.log("Server running on http://localhost:3000")
