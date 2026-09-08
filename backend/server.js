@@ -2,7 +2,7 @@ const express = require("express")
 const cors = require("cors")
 const authRoutes = require("./routes/auth")
 const session = require("express-session")
-
+const pool = require("./db.js")
 const app = express()
 
 app.use(cors({

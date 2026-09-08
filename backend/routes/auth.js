@@ -1,37 +1,41 @@
 const express = require("express")
-
+const bcrypt = require("bcrypt")
+const db = require("../db.js")
 const router = express.Router()
 
-const users = [
-    {
-        id: 1,
-        email: "admin@example.com",
-        password: "password123"
-    },
-    {
-        id: 2,
-        email: "user@example.com",
-        password: "hello123"
+async function encryptUser(userPassword) { // easier i guess, idk how it works
+    try {
+        return await bcrypt.hash(userPassword, 10)
+    } catch (err) {
+        console.error("Hashing password error.")
     }
-]
+}
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
     console.log("LOGIN ROUTE HIT")
     console.log(req.body)
 
     const { email, password } = req.body
 
-    const user = users.find(user => user.email === email)
+    const {rows} = await db.query(
+        "SELECT * FROM users where email = $1", 
+        [email]
+    )
+
+    const user = rows[0]
+    console.log(user)
 
     if (!user) {
         return res.status(401).json({
-            message: "Invalid email or passwordb"
+            message: "Invalid email or password"
         })
     }
 
-    if (user.password !== password) {
+    const match = await bcrypt.compare(password, user.password)
+
+    if (!match) {
         return res.status(401).json({
-            message: "Invalid email or passworda"
+            message: "Invalid email or password"
         })
     }
 
@@ -47,9 +51,12 @@ router.post("/login", (req, res) => {
     })
 })
 
+router.get("/register", async (req, res) => {
+})
 
-router.get("/me", (req, res) => {
-    const user = users.find(user => user.id === req.session.userId)
+router.get("/me", async (req, res) => {
+    const rows = await db.query("SELECT * FROM users where id = $!", [req.session.id])
+    const user = rows[0]
 
     res.json({
         user : user
