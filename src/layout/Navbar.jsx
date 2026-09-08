@@ -1,12 +1,16 @@
 import './Navbar.css'
-import { Search, Menu, BellIcon, CircleQuestionMark, CircleUserRound, SeparatorVertical } from 'lucide-react'
+import { Search, Menu, BellIcon, CircleQuestionMark, CircleUserRound, SeparatorVertical, User } from 'lucide-react'
+import {UserContext} from '../auth/UserContext'
+import {useContext} from 'react'
 
-function Navbar() {
+function Navbar({pageTitle}) {
+    const { user } = useContext(UserContext)
+
     return (
         <>
             <div className="navbar-container">
                 <div className="navbar-left">
-                    <h1>Page Title</h1>
+                    <h1>{pageTitle}</h1>
                 </div>
 
                 <div className="navbar-right">
@@ -18,7 +22,7 @@ function Navbar() {
                     <CircleQuestionMark/>
                     <div className="divider"></div>
                     <CircleUserRound size={32} aria-label="User profile" />
-                    <p>Placeholder Name</p>
+                    <p>{user.email}</p>
                 </div>
             </div>
         </>
