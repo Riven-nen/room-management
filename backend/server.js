@@ -5,6 +5,7 @@ const labRoutes = require("./routes/lab.js")
 const session = require("express-session")
 const pool = require("./db.js")
 const app = express()
+const reservationRoutes = require("./routes/reservation.js")
 
 app.use(cors({
     origin: "http://localhost:4000",
@@ -21,6 +22,7 @@ app.use(session({
 
 app.use("/api/auth", authRoutes)
 app.use("/api/lab", labRoutes)
+app.use("/api/reservation", reservationRoutes)
 
 app.listen(3000, () => {
     console.log("Server running on http://localhost:3000")
