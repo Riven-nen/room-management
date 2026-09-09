@@ -31,12 +31,19 @@
     font-size: 20px;
 }
 
-.modal-header button {
+.modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
     border: none;
     background: transparent;
-    font-size: 28px;
-    line-height: 1;
+    color: #666;
     cursor: pointer;
+}
+
+.modal-close:hover {
+    color: #111;
 }
 
 .modal-body {

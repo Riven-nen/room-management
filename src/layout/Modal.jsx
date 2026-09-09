@@ -1,16 +1,24 @@
-import './Modal.css'
+import {X} from "lucide-react"
+import "./Modal.css"
 
-function Modal({ isOpen, onClose, title, children }) {
+function Modal({isOpen, onClose, title, children}) {
     if (!isOpen) {
         return null
     }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-overlay">
+            <div className="modal">
                 <div className="modal-header">
                     <h2>{title}</h2>
-                    <button type="button" onClick={onClose}></button>
+
+                    <button
+                        type="button"
+                        className="modal-close"
+                        onClick={onClose}
+                    >
+                        <X size={20}/>
+                    </button>
                 </div>
 
                 <div className="modal-body">

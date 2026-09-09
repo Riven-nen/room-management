@@ -44,6 +44,7 @@
     color: white;
     font-weight: bold;
     gap: 8px;
+    cursor: pointer;
 }
 
 .lab-management-content {
@@ -165,4 +166,31 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    cursor: pointer;
+    background-color: transparent;
+    border: 0;
+}
+
+.lab-management-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #dc2626;
+    border-radius: 6px;
+    background: #dc2626;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.lab-management-delete:hover {
+    background: #b91c1c;
+}
+
+.lab-management-delete:active {
+    background: #991b1b;
 }

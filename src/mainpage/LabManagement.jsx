@@ -1,33 +1,28 @@
-import {DoorOpen, Monitor, User2, Wrench, PlusCircle, ListFilter, MapPin, Pen} from 'lucide-react'
+import {DoorOpen, Monitor, User2, Wrench, PlusCircle, ListFilter, MapPin, Pen, Trash2} from 'lucide-react'
 import "./LabManagement.css"
 import Card from "./Card"
 import PlaceholderLab from "../assets/placeholder-lab.jpg"
 import Toggle from "../layout/Toggle.jsx"
 import Modal from "../layout/Modal.jsx"
-import {useEffect, useState} from 'react'
+import {useState, useContext} from 'react'
+import {UserContext} from "../auth/UserContext.jsx"
 
 function LabManagement() {
     const [showModal, setShowModal] = useState(false)
-    const [labs, setLabs] = useState([])
+    const [showEditModal, setShowEditModal] = useState(false)
+
+    const {labs, setLabs} = useContext(UserContext)
 
     const [roomName, setRoomName] = useState("")
     const [roomBuilding, setRoomBuilding] = useState("")
     const [roomCapacity, setRoomCapacity] = useState("")
     const [roomPCS, setRoomPCS] = useState("")
 
-    const fetchLabs = async () => {
-        const response = await fetch("http://localhost:3000/api/lab/get", {
-            credentials: "include"
-        })
-
-        const data = await response.json()
-        setLabs(data.labs)
-        console.log(data.labs)
-    }
-
-    useEffect(() => {
-        fetchLabs()
-    }, [])
+    const [editRoom, setEditRoom] = useState("")
+    const [editRoomName, setEditRoomName] = useState("")
+    const [editRoomBuilding, setEditRoomBuilding] = useState("")
+    const [editRoomCapacity, setEditRoomCapacity] = useState("")
+    const [editRoomPCS, setEditRoomPCS] = useState("")
 
     const handleSubmit = async (event) => {
         event.preventDefault()
@@ -47,14 +42,84 @@ function LabManagement() {
         })
 
         if (response.ok) {
-            setShowModal(false)
+            const labsResponse = await fetch("http://localhost:3000/api/lab/all", {
+                credentials: "include"
+            })
 
+            const data = await labsResponse.json()
+
+            setLabs(data.labs)
+
+            setShowModal(false)
             setRoomName("")
             setRoomBuilding("")
             setRoomCapacity("")
             setRoomPCS("")
+        }
+    }
 
-            fetchLabs()
+    const handleEditClick = (lab) => {
+        setEditRoom(lab.name)
+        setEditRoomName(lab.name)
+        setEditRoomBuilding(lab.location)
+        setEditRoomCapacity(lab.capacity)
+        setEditRoomPCS(lab.computer_count)
+
+        setShowEditModal(true)
+    }
+
+    const handleEditSubmit = async (event) => {
+        event.preventDefault()
+
+        const response = await fetch("http://localhost:3000/api/lab/edit", {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({
+                roomName: editRoom,
+                newRoomName: editRoomName,
+                roomBuilding: editRoomBuilding,
+                roomCapacity: editRoomCapacity,
+                roomPCS: editRoomPCS
+            })
+        })
+
+        if (response.ok) {
+            const labsResponse = await fetch("http://localhost:3000/api/lab/all", {
+                credentials: "include"
+            })
+
+            const data = await labsResponse.json()
+
+            setLabs(data.labs)
+            setEditRoom(editRoomName)
+            setShowEditModal(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        const response = await fetch("http://localhost:3000/api/lab/delete", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({
+                roomName: editRoom
+            })
+        })
+
+        if (response.ok) {
+            const labsResponse = await fetch("http://localhost:3000/api/lab/all", {
+                credentials: "include"
+            })
+
+            const data = await labsResponse.json()
+
+            setLabs(data.labs)
+            setShowEditModal(false)
         }
     }
 
@@ -132,11 +197,61 @@ function LabManagement() {
                 </form>
             </Modal>
 
+            <Modal
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                title="Edit Lab"
+            >
+                <form onSubmit={handleEditSubmit}>
+                    <input
+                        type="text"
+                        placeholder="Room number"
+                        value={editRoomName}
+                        onChange={(event) => setEditRoomName(event.target.value)}
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Building"
+                        value={editRoomBuilding}
+                        onChange={(event) => setEditRoomBuilding(event.target.value)}
+                    />
+
+                    <input
+                        type="number"
+                        placeholder="Capacity"
+                        value={editRoomCapacity}
+                        onChange={(event) => setEditRoomCapacity(event.target.value)}
+                    />
+
+                    <input
+                        type="number"
+                        placeholder="Available PCs"
+                        value={editRoomPCS}
+                        onChange={(event) => setEditRoomPCS(event.target.value)}
+                    />
+
+                    <button type="submit">
+                        Save Changes
+                    </button>
+
+                    <button
+                        type="button"
+                        className="lab-management-delete"
+                        onClick={handleDelete}
+                    >
+                        <Trash2/>
+                        Delete Lab
+                    </button>
+                </form>
+            </Modal>
+
             <div className="lab-management-content">
                 <Card className="lab-management-stats lab-management-bookings" columns={3}>
                     <div className="lab-management-stats-icon-wrapper icon-door">
                         <DoorOpen size={32}/>
                     </div>
+
                     <div className="lab-management-stats-title-number">
                         <p>Total Laboratories</p>
                         <h2>{labs.length} Rooms</h2>
@@ -147,10 +262,11 @@ function LabManagement() {
                     <div className="lab-management-stats-icon-wrapper icon-monitor">
                         <Monitor size={32}/>
                     </div>
+
                     <div className="lab-management-stats-title-number">
                         <p>Total Computers</p>
                         <h2>
-                            {labs.reduce((total, lab) => total + Number(lab.pcs), 0)} Units
+                            {labs.reduce((total, lab) => total + Number(lab.computer_count), 0)} Units
                         </h2>
                     </div>
                 </Card>
@@ -159,6 +275,7 @@ function LabManagement() {
                     <div className="lab-management-stats-icon-wrapper icon-person">
                         <User2 size={32} color="#00195c"/>
                     </div>
+
                     <div className="lab-management-stats-title-number">
                         <p>Seating Capacity</p>
                         <h2>
@@ -171,6 +288,7 @@ function LabManagement() {
                     <div className="lab-management-stats-icon-wrapper icon-wrench">
                         <Wrench size={32}/>
                     </div>
+
                     <div className="lab-management-stats-title-number">
                         <p>Pending Repairs</p>
                         <h2>0 Items</h2>
@@ -211,10 +329,14 @@ function LabManagement() {
                                 <p>Maintenance</p>
                                 <Toggle/>
 
-                                <div className="lab-management-labcard-info-diag-edit">
+                                <button
+                                    type="button"
+                                    className="lab-management-labcard-info-diag-edit"
+                                    onClick={() => handleEditClick(lab)}
+                                >
                                     <Pen/>
                                     <p>Edit Details</p>
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </Card>
