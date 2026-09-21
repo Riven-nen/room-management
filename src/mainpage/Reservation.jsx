@@ -22,6 +22,26 @@ const localizer = dateFnsLocalizer({
 const API_URL = "http://localhost:3000/api/reservation"
 const LAB_API_URL = "http://localhost:3000/api/lab"
 
+// Parse a UTC timestamp string as local time (strips the trailing Z)
+const parseLocal = (value) => {
+    if (!value) return new Date()
+    if (value instanceof Date) return value
+
+    const str = String(value)
+
+    if (str.endsWith("Z")) {
+        return new Date(str.slice(0, -1))
+    }
+
+    return new Date(str)
+}
+
+// Check if two dates fall on the same calendar day
+const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+
 function Reservation() {
     const { user } = useContext(UserContext)
 
@@ -39,37 +59,6 @@ function Reservation() {
         status: "pending"
     })
 
-    const fetchReservations = async () => {
-        try {
-            setLoading(true)
-            setError("")
-
-            const response = await fetch(`${API_URL}/all`, {
-                credentials: "include"
-            })
-
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(data.error || "Failed to fetch reservations")
-            }
-
-            const formattedReservations = data.reservations.map(
-                (reservation) => ({
-                    ...reservation,
-                    start: new Date(reservation.start),
-                    end: new Date(reservation.end)
-                })
-            )
-
-            setReservations(formattedReservations)
-        } catch (error) {
-            setError(error.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
     const fetchLabs = async () => {
         try {
             const response = await fetch(`${LAB_API_URL}/all`, {
@@ -85,14 +74,70 @@ function Reservation() {
             }
 
             setLabs(data.labs)
+            return data.labs
         } catch (error) {
             setError(error.message)
+            return []
+        }
+    }
+
+    const fetchReservations = async (labsList = labs) => {
+        try {
+            setLoading(true)
+            setError("")
+
+            const response = await fetch(`${API_URL}/all`, {
+                credentials: "include"
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error || "Failed to fetch reservations"
+                )
+            }
+
+            const formattedReservations = data.reservations.map((r) => {
+                const start = parseLocal(r.start)
+                const end = parseLocal(r.end)
+
+                const lab = labsList.find((l) => l.id === r.room_id)
+
+                const roomName =
+                    r.room || lab?.name || `Room ${r.room_id}`
+
+                const userName = r.user || `User ${r.reserved_by}`
+
+                const title = r.title
+                    ? `${r.title} — ${userName}`
+                    : `${roomName} — ${userName}`
+
+                return {
+                    ...r,
+                    start,
+                    end,
+                    title,
+                    room: roomName,
+                    user: userName
+                }
+            })
+
+            setReservations(formattedReservations)
+        } catch (error) {
+            setError(error.message)
+        } finally {
+            setLoading(false)
         }
     }
 
     useEffect(() => {
-        fetchReservations()
-        fetchLabs()
+        const loadData = async () => {
+            const labsList = await fetchLabs()
+            await fetchReservations(labsList)
+        }
+
+        loadData()
     }, [])
 
     const handleSelectEvent = (reservation) => {
@@ -110,10 +155,19 @@ function Reservation() {
             return `${year}-${month}-${day}T${hours}:${minutes}`
         }
 
+        // Force the end time to be on the same day as the start
+        // If the user drags across midnight, clamp the end to 23:59 of the start day
+        let adjustedEnd = end
+
+        if (!isSameDay(start, end)) {
+            adjustedEnd = new Date(start)
+            adjustedEnd.setHours(23, 59, 0, 0)
+        }
+
         setForm({
             roomId: "",
             timeStart: formatDateTime(start),
-            timeEnd: formatDateTime(end),
+            timeEnd: formatDateTime(adjustedEnd),
             status: "pending"
         })
 
@@ -124,10 +178,56 @@ function Reservation() {
     const handleChange = (event) => {
         const { name, value } = event.target
 
-        setForm((previous) => ({
-            ...previous,
-            [name]: value
-        }))
+        setForm((previous) => {
+            const updated = {
+                ...previous,
+                [name]: value
+            }
+
+            // If the user changes the start time, keep end on the same day
+            if (name === "timeStart" && value && previous.timeEnd) {
+                const newStart = new Date(value)
+                const currentEnd = new Date(previous.timeEnd)
+
+                if (!isSameDay(newStart, currentEnd)) {
+                    // Auto-fix end to be one hour after start, same day
+                    const newEnd = new Date(newStart)
+                    newEnd.setHours(newEnd.getHours() + 1)
+
+                    updated.timeEnd = `${newEnd.getFullYear()}-${String(
+                        newEnd.getMonth() + 1
+                    ).padStart(2, "0")}-${String(newEnd.getDate()).padStart(
+                        2,
+                        "0"
+                    )}T${String(newEnd.getHours()).padStart(2, "0")}:${String(
+                        newEnd.getMinutes()
+                    ).padStart(2, "0")}`
+                }
+            }
+
+            // If the user changes the end time, clamp it to the same day as start
+            if (name === "timeEnd" && value && previous.timeStart) {
+                const startDate = new Date(previous.timeStart)
+                const endDate = new Date(value)
+
+                if (!isSameDay(startDate, endDate)) {
+                    // Clamp end to 23:59 of the start day
+                    const clampedEnd = new Date(startDate)
+                    clampedEnd.setHours(23, 59, 0, 0)
+
+                    updated.timeEnd = `${clampedEnd.getFullYear()}-${String(
+                        clampedEnd.getMonth() + 1
+                    ).padStart(2, "0")}-${String(clampedEnd.getDate()).padStart(
+                        2,
+                        "0"
+                    )}T${String(clampedEnd.getHours()).padStart(2, "0")}:${String(
+                        clampedEnd.getMinutes()
+                    ).padStart(2, "0")}`
+                }
+            }
+
+            return updated
+        })
     }
 
     const handleAddReservation = async (event) => {
@@ -151,8 +251,36 @@ function Reservation() {
             return
         }
 
+        // === Validation ===
+
+        // 1. Must be same day
+        if (!isSameDay(start, end)) {
+            setError(
+                "Reservations must start and end on the same day. Multi-day bookings are not allowed."
+            )
+            return
+        }
+
+        // 2. End must be after start
         if (start >= end) {
             setError("End time must be after start time")
+            return
+        }
+
+        // 3. Cannot book in the past
+        const now = new Date()
+        if (start < now) {
+            setError("Cannot create a reservation in the past")
+            return
+        }
+
+        // 4. Optional: enforce a max duration (e.g., 8 hours)
+        const MAX_HOURS = 8
+        const durationHours = (end - start) / (1000 * 60 * 60)
+        if (durationHours > MAX_HOURS) {
+            setError(
+                `Reservation cannot exceed ${MAX_HOURS} hours in a single day`
+            )
             return
         }
 
@@ -245,12 +373,25 @@ function Reservation() {
                         views={["week", "day"]}
                         step={30}
                         timeslots={2}
-                        min={new Date(1970, 0, 1, 7, 0)}
-                        max={new Date(1970, 0, 1, 18, 0)}
+                        min={new Date(1970, 0, 1, 0, 0)}
+                        max={new Date(1970, 0, 1, 23, 59)}
                         selectable
                         popup
                         onSelectEvent={handleSelectEvent}
                         onSelectSlot={handleSelectSlot}
+                        eventPropGetter={(event) => ({
+                            style: {
+                                backgroundColor:
+                                    event.status === "confirmed" ? "#16a34a" :
+                                    event.status === "pending"   ? "#f59e0b" :
+                                    event.status === "rejected"  ? "#dc2626" :
+                                    event.status === "cancelled" ? "#6b7280" :
+                                    "#2563eb",
+                                borderRadius: "4px",
+                                color: "white",
+                                border: "none"
+                            }
+                        })}
                         style={{ height: 650 }}
                     />
                 )}
@@ -426,9 +567,13 @@ function Reservation() {
                                         name="timeEnd"
                                         type="datetime-local"
                                         value={form.timeEnd}
+                                        min={form.timeStart || undefined}
                                         onChange={handleChange}
                                         required
                                     />
+                                    <small>
+                                        Must be on the same day as the start time
+                                    </small>
                                 </div>
 
                                 <div className="reservation-form-group">
