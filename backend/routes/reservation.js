@@ -2,9 +2,14 @@ const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
 
+const normalize = (value) => {
+    if (!value) return value
+    return String(value).replace("T", " ").trim()
+}
+
 router.get("/all", async (req, res) => {
     try {
-        const {rows} = await db.query(`
+        const { rows } = await db.query(`
             SELECT
                 reservations.id,
                 reservations.time_start,
@@ -31,29 +36,22 @@ router.get("/all", async (req, res) => {
             status: reservation.status
         }))
 
-        res.json({
-            reservations
-        })
+        res.json({ reservations })
     } catch (error) {
         console.error(error)
-
-        res.status(500).json({
-            error: "Failed to retrieve reservations"
-        })
+        res.status(500).json({ error: "Failed to retrieve reservations" })
     }
 })
 
 router.get("/get", async (req, res) => {
-    const {id} = req.query
+    const { id } = req.query
 
     if (!id) {
-        return res.status(400).json({
-            error: "Reservation ID is required"
-        })
+        return res.status(400).json({ error: "Reservation ID is required" })
     }
 
     try {
-        const {rows} = await db.query(`
+        const { rows } = await db.query(`
             SELECT
                 reservations.id,
                 reservations.time_start,
@@ -71,9 +69,7 @@ router.get("/get", async (req, res) => {
         `, [id])
 
         if (rows.length === 0) {
-            return res.status(404).json({
-                error: "Reservation not found"
-            })
+            return res.status(404).json({ error: "Reservation not found" })
         }
 
         const reservation = rows[0]
@@ -91,21 +87,12 @@ router.get("/get", async (req, res) => {
         })
     } catch (error) {
         console.error(error)
-
-        res.status(500).json({
-            error: "Failed to retrieve reservation"
-        })
+        res.status(500).json({ error: "Failed to retrieve reservation" })
     }
 })
 
 router.post("/add", async (req, res) => {
-    const {
-        roomId,
-        reservedBy,
-        timeStart,
-        timeEnd,
-        status
-    } = req.body
+    const { roomId, reservedBy, timeStart, timeEnd, status } = req.body
 
     if (!roomId || !reservedBy || !timeStart || !timeEnd) {
         return res.status(400).json({
@@ -113,14 +100,8 @@ router.post("/add", async (req, res) => {
         })
     }
 
-    const start = new Date(timeStart)
-    const end = new Date(timeEnd)
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return res.status(400).json({
-            error: "Invalid reservation date or time"
-        })
-    }
+    const start = normalize(timeStart)
+    const end = normalize(timeEnd)
 
     if (start >= end) {
         return res.status(400).json({
@@ -135,9 +116,7 @@ router.post("/add", async (req, res) => {
         )
 
         if (roomResult.rows.length === 0) {
-            return res.status(404).json({
-                error: "Laboratory not found"
-            })
+            return res.status(404).json({ error: "Laboratory not found" })
         }
 
         if (roomResult.rows[0].maintenance) {
@@ -152,9 +131,7 @@ router.post("/add", async (req, res) => {
         )
 
         if (userResult.rows.length === 0) {
-            return res.status(404).json({
-                error: "User not found"
-            })
+            return res.status(404).json({ error: "User not found" })
         }
 
         const overlapResult = await db.query(`
@@ -164,11 +141,7 @@ router.post("/add", async (req, res) => {
             AND time_start < $3
             AND time_end > $2
             AND status NOT IN ('rejected', 'cancelled')
-        `, [
-            roomId,
-            timeStart,
-            timeEnd
-        ])
+        `, [roomId, start, end])
 
         if (overlapResult.rows.length > 0) {
             return res.status(409).json({
@@ -178,7 +151,7 @@ router.post("/add", async (req, res) => {
 
         const reservationStatus = status || "pending"
 
-        const {rows} = await db.query(`
+        const { rows } = await db.query(`
             INSERT INTO reservations (
                 time_start,
                 time_end,
@@ -188,13 +161,7 @@ router.post("/add", async (req, res) => {
             )
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, time_start, time_end, reserved_by, room_id, status
-        `, [
-            timeStart,
-            timeEnd,
-            reservedBy,
-            roomId,
-            reservationStatus
-        ])
+        `, [start, end, reservedBy, roomId, reservationStatus])
 
         res.status(201).json({
             message: "Reservation created successfully",
@@ -204,26 +171,15 @@ router.post("/add", async (req, res) => {
         console.error(error)
 
         if (error.code === "22P02") {
-            return res.status(400).json({
-                error: "Invalid reservation data"
-            })
+            return res.status(400).json({ error: "Invalid reservation data" })
         }
 
-        res.status(500).json({
-            error: "Failed to create reservation"
-        })
+        res.status(500).json({ error: "Failed to create reservation" })
     }
 })
 
 router.put("/edit", async (req, res) => {
-    const {
-        id,
-        roomId,
-        reservedBy,
-        timeStart,
-        timeEnd,
-        status
-    } = req.body
+    const { id, roomId, reservedBy, timeStart, timeEnd, status } = req.body
 
     if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status) {
         return res.status(400).json({
@@ -231,14 +187,8 @@ router.put("/edit", async (req, res) => {
         })
     }
 
-    const start = new Date(timeStart)
-    const end = new Date(timeEnd)
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return res.status(400).json({
-            error: "Invalid reservation date or time"
-        })
-    }
+    const start = normalize(timeStart)
+    const end = normalize(timeEnd)
 
     if (start >= end) {
         return res.status(400).json({
@@ -253,9 +203,7 @@ router.put("/edit", async (req, res) => {
         )
 
         if (reservationResult.rows.length === 0) {
-            return res.status(404).json({
-                error: "Reservation not found"
-            })
+            return res.status(404).json({ error: "Reservation not found" })
         }
 
         const roomResult = await db.query(
@@ -264,9 +212,7 @@ router.put("/edit", async (req, res) => {
         )
 
         if (roomResult.rows.length === 0) {
-            return res.status(404).json({
-                error: "Laboratory not found"
-            })
+            return res.status(404).json({ error: "Laboratory not found" })
         }
 
         if (roomResult.rows[0].maintenance) {
@@ -281,9 +227,7 @@ router.put("/edit", async (req, res) => {
         )
 
         if (userResult.rows.length === 0) {
-            return res.status(404).json({
-                error: "User not found"
-            })
+            return res.status(404).json({ error: "User not found" })
         }
 
         const overlapResult = await db.query(`
@@ -294,12 +238,7 @@ router.put("/edit", async (req, res) => {
             AND time_end > $2
             AND id != $4
             AND status NOT IN ('rejected', 'cancelled')
-        `, [
-            roomId,
-            timeStart,
-            timeEnd,
-            id
-        ])
+        `, [roomId, start, end, id])
 
         if (overlapResult.rows.length > 0) {
             return res.status(409).json({
@@ -307,7 +246,7 @@ router.put("/edit", async (req, res) => {
             })
         }
 
-        const {rows} = await db.query(`
+        const { rows } = await db.query(`
             UPDATE reservations
             SET
                 time_start = $1,
@@ -317,14 +256,7 @@ router.put("/edit", async (req, res) => {
                 status = $5
             WHERE id = $6
             RETURNING id, time_start, time_end, reserved_by, room_id, status
-        `, [
-            timeStart,
-            timeEnd,
-            reservedBy,
-            roomId,
-            status,
-            id
-        ])
+        `, [start, end, reservedBy, roomId, status, id])
 
         res.json({
             message: "Reservation updated successfully",
@@ -334,47 +266,34 @@ router.put("/edit", async (req, res) => {
         console.error(error)
 
         if (error.code === "22P02") {
-            return res.status(400).json({
-                error: "Invalid reservation data"
-            })
+            return res.status(400).json({ error: "Invalid reservation data" })
         }
 
-        res.status(500).json({
-            error: "Failed to update reservation"
-        })
+        res.status(500).json({ error: "Failed to update reservation" })
     }
 })
 
 router.delete("/delete", async (req, res) => {
-    const {id} = req.body
+    const { id } = req.body
 
     if (!id) {
-        return res.status(400).json({
-            error: "Reservation ID is required"
-        })
+        return res.status(400).json({ error: "Reservation ID is required" })
     }
 
     try {
-        const {rowCount} = await db.query(
+        const { rowCount } = await db.query(
             "DELETE FROM reservations WHERE id = $1",
             [id]
         )
 
         if (rowCount === 0) {
-            return res.status(404).json({
-                error: "Reservation not found"
-            })
+            return res.status(404).json({ error: "Reservation not found" })
         }
 
-        res.json({
-            message: "Reservation deleted successfully"
-        })
+        res.json({ message: "Reservation deleted successfully" })
     } catch (error) {
         console.error(error)
-
-        res.status(500).json({
-            error: "Failed to delete reservation"
-        })
+        res.status(500).json({ error: "Failed to delete reservation" })
     }
 })
 

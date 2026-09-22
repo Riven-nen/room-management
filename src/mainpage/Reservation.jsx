@@ -22,21 +22,41 @@ const localizer = dateFnsLocalizer({
 const API_URL = "http://localhost:3000/api/reservation"
 const LAB_API_URL = "http://localhost:3000/api/lab"
 
-// Parse a UTC timestamp string as local time (strips the trailing Z)
+const pad = (n) => String(n).padStart(2, "0")
+
 const parseLocal = (value) => {
     if (!value) return new Date()
-    if (value instanceof Date) return value
+    if (value instanceof Date) {
+        const y = value.getFullYear()
+        const m = value.getMonth()
+        const d = value.getDate()
+        const h = value.getHours()
+        const mi = value.getMinutes()
+        return new Date(y, m, d, h, mi, 0, 0)
+    }
 
-    const str = String(value)
+    const str = String(value).trim()
 
-    if (str.endsWith("Z")) {
-        return new Date(str.slice(0, -1))
+    const match = str.match(
+        /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/
+    )
+
+    if (match) {
+        const [, y, mo, d, h, mi, s] = match
+        return new Date(
+            Number(y),
+            Number(mo) - 1,
+            Number(d),
+            Number(h),
+            Number(mi),
+            Number(s || 0),
+            0
+        )
     }
 
     return new Date(str)
 }
 
-// Check if two dates fall on the same calendar day
 const isSameDay = (a, b) =>
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
@@ -68,9 +88,7 @@ function Reservation() {
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(
-                    data.error || "Failed to fetch laboratories"
-                )
+                throw new Error(data.error || "Failed to fetch laboratories")
             }
 
             setLabs(data.labs)
@@ -93,20 +111,17 @@ function Reservation() {
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(
-                    data.error || "Failed to fetch reservations"
-                )
+                throw new Error(data.error || "Failed to fetch reservations")
             }
 
             const formattedReservations = data.reservations.map((r) => {
                 const start = parseLocal(r.start)
+                console.log('RAW START:', JSON.stringify(r.start), 'PARSED:', start.toString())
                 const end = parseLocal(r.end)
 
                 const lab = labsList.find((l) => l.id === r.room_id)
 
-                const roomName =
-                    r.room || lab?.name || `Room ${r.room_id}`
-
+                const roomName = r.room || lab?.name || `Room ${r.room_id}`
                 const userName = r.user || `User ${r.reserved_by}`
 
                 const title = r.title
@@ -146,17 +161,11 @@ function Reservation() {
 
     const handleSelectSlot = ({ start, end }) => {
         const formatDateTime = (date) => {
-            const year = date.getFullYear()
-            const month = String(date.getMonth() + 1).padStart(2, "0")
-            const day = String(date.getDate()).padStart(2, "0")
-            const hours = String(date.getHours()).padStart(2, "0")
-            const minutes = String(date.getMinutes()).padStart(2, "0")
-
-            return `${year}-${month}-${day}T${hours}:${minutes}`
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+                date.getDate()
+            )}T${pad(date.getHours())}:${pad(date.getMinutes())}`
         }
 
-        // Force the end time to be on the same day as the start
-        // If the user drags across midnight, clamp the end to 23:59 of the start day
         let adjustedEnd = end
 
         if (!isSameDay(start, end)) {
@@ -184,45 +193,35 @@ function Reservation() {
                 [name]: value
             }
 
-            // If the user changes the start time, keep end on the same day
             if (name === "timeStart" && value && previous.timeEnd) {
                 const newStart = new Date(value)
                 const currentEnd = new Date(previous.timeEnd)
 
                 if (!isSameDay(newStart, currentEnd)) {
-                    // Auto-fix end to be one hour after start, same day
                     const newEnd = new Date(newStart)
                     newEnd.setHours(newEnd.getHours() + 1)
 
-                    updated.timeEnd = `${newEnd.getFullYear()}-${String(
+                    updated.timeEnd = `${newEnd.getFullYear()}-${pad(
                         newEnd.getMonth() + 1
-                    ).padStart(2, "0")}-${String(newEnd.getDate()).padStart(
-                        2,
-                        "0"
-                    )}T${String(newEnd.getHours()).padStart(2, "0")}:${String(
-                        newEnd.getMinutes()
-                    ).padStart(2, "0")}`
+                    )}-${pad(newEnd.getDate())}T${pad(
+                        newEnd.getHours()
+                    )}:${pad(newEnd.getMinutes())}`
                 }
             }
 
-            // If the user changes the end time, clamp it to the same day as start
             if (name === "timeEnd" && value && previous.timeStart) {
                 const startDate = new Date(previous.timeStart)
                 const endDate = new Date(value)
 
                 if (!isSameDay(startDate, endDate)) {
-                    // Clamp end to 23:59 of the start day
                     const clampedEnd = new Date(startDate)
                     clampedEnd.setHours(23, 59, 0, 0)
 
-                    updated.timeEnd = `${clampedEnd.getFullYear()}-${String(
+                    updated.timeEnd = `${clampedEnd.getFullYear()}-${pad(
                         clampedEnd.getMonth() + 1
-                    ).padStart(2, "0")}-${String(clampedEnd.getDate()).padStart(
-                        2,
-                        "0"
-                    )}T${String(clampedEnd.getHours()).padStart(2, "0")}:${String(
-                        clampedEnd.getMinutes()
-                    ).padStart(2, "0")}`
+                    )}-${pad(clampedEnd.getDate())}T${pad(
+                        clampedEnd.getHours()
+                    )}:${pad(clampedEnd.getMinutes())}`
                 }
             }
 
@@ -251,9 +250,6 @@ function Reservation() {
             return
         }
 
-        // === Validation ===
-
-        // 1. Must be same day
         if (!isSameDay(start, end)) {
             setError(
                 "Reservations must start and end on the same day. Multi-day bookings are not allowed."
@@ -261,20 +257,25 @@ function Reservation() {
             return
         }
 
-        // 2. End must be after start
         if (start >= end) {
             setError("End time must be after start time")
             return
         }
 
-        // 3. Cannot book in the past
         const now = new Date()
         if (start < now) {
             setError("Cannot create a reservation in the past")
             return
         }
 
-        // 4. Optional: enforce a max duration (e.g., 8 hours)
+        const startHour = start.getHours() + start.getMinutes() / 60
+        const endHour = end.getHours() + end.getMinutes() / 60
+
+        if (startHour < 7 || endHour > 20) {
+            setError("Reservations must be between 7:00 AM and 8:00 PM")
+            return
+        }
+
         const MAX_HOURS = 8
         const durationHours = (end - start) / (1000 * 60 * 60)
         if (durationHours > MAX_HOURS) {
@@ -305,9 +306,7 @@ function Reservation() {
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(
-                    data.error || "Failed to add reservation"
-                )
+                throw new Error(data.error || "Failed to add reservation")
             }
 
             setShowAddModal(false)
@@ -373,8 +372,8 @@ function Reservation() {
                         views={["week", "day"]}
                         step={30}
                         timeslots={2}
-                        min={new Date(1970, 0, 1, 0, 0)}
-                        max={new Date(1970, 0, 1, 23, 59)}
+                        min={new Date(1970, 0, 1, 7, 0)}
+                        max={new Date(1970, 0, 1, 20, 0)}
                         selectable
                         popup
                         onSelectEvent={handleSelectEvent}
@@ -420,16 +419,12 @@ function Reservation() {
                         <div className="reservation-modal-content">
                             <div className="reservation-detail">
                                 <span>Room</span>
-                                <strong>
-                                    {selectedReservation.room}
-                                </strong>
+                                <strong>{selectedReservation.room}</strong>
                             </div>
 
                             <div className="reservation-detail">
                                 <span>Reserved By</span>
-                                <strong>
-                                    {selectedReservation.user}
-                                </strong>
+                                <strong>{selectedReservation.user}</strong>
                             </div>
 
                             <div className="reservation-detail">
@@ -465,9 +460,7 @@ function Reservation() {
                         <div className="reservation-modal-footer">
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setSelectedReservation(null)
-                                }
+                                onClick={() => setSelectedReservation(null)}
                             >
                                 Close
                             </button>
@@ -499,9 +492,7 @@ function Reservation() {
                         <form onSubmit={handleAddReservation}>
                             <div className="reservation-modal-content">
                                 <div className="reservation-form-group">
-                                    <label htmlFor="roomId">
-                                        Laboratory
-                                    </label>
+                                    <label htmlFor="roomId">Laboratory</label>
 
                                     <select
                                         id="roomId"
@@ -510,15 +501,10 @@ function Reservation() {
                                         onChange={handleChange}
                                         required
                                     >
-                                        <option value="">
-                                            Select laboratory
-                                        </option>
+                                        <option value="">Select laboratory</option>
 
                                         {labs.map((lab) => (
-                                            <option
-                                                key={lab.id}
-                                                value={lab.id}
-                                            >
+                                            <option key={lab.id} value={lab.id}>
                                                 {lab.name}
                                             </option>
                                         ))}
@@ -526,26 +512,18 @@ function Reservation() {
                                 </div>
 
                                 <div className="reservation-form-group">
-                                    <label htmlFor="reservedBy">
-                                        Reserved By
-                                    </label>
+                                    <label htmlFor="reservedBy">Reserved By</label>
 
                                     <input
                                         id="reservedBy"
                                         type="text"
-                                        value={
-                                            user
-                                                ? user.name
-                                                : "Not logged in"
-                                        }
+                                        value={user ? user.name : "Not logged in"}
                                         disabled
                                     />
                                 </div>
 
                                 <div className="reservation-form-group">
-                                    <label htmlFor="timeStart">
-                                        Start
-                                    </label>
+                                    <label htmlFor="timeStart">Start</label>
 
                                     <input
                                         id="timeStart"
@@ -558,9 +536,7 @@ function Reservation() {
                                 </div>
 
                                 <div className="reservation-form-group">
-                                    <label htmlFor="timeEnd">
-                                        End
-                                    </label>
+                                    <label htmlFor="timeEnd">End</label>
 
                                     <input
                                         id="timeEnd"
@@ -571,15 +547,11 @@ function Reservation() {
                                         onChange={handleChange}
                                         required
                                     />
-                                    <small>
-                                        Must be on the same day as the start time
-                                    </small>
+                                    <small>Must be on the same day as the start time</small>
                                 </div>
 
                                 <div className="reservation-form-group">
-                                    <label htmlFor="status">
-                                        Status
-                                    </label>
+                                    <label htmlFor="status">Status</label>
 
                                     <select
                                         id="status"
@@ -588,21 +560,10 @@ function Reservation() {
                                         onChange={handleChange}
                                         required
                                     >
-                                        <option value="pending">
-                                            Pending
-                                        </option>
-
-                                        <option value="confirmed">
-                                            Confirmed
-                                        </option>
-
-                                        <option value="rejected">
-                                            Rejected
-                                        </option>
-
-                                        <option value="cancelled">
-                                            Cancelled
-                                        </option>
+                                        <option value="pending">Pending</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="cancelled">Cancelled</option>
                                     </select>
                                 </div>
                             </div>
@@ -615,9 +576,7 @@ function Reservation() {
                                     Cancel
                                 </button>
 
-                                <button type="submit">
-                                    Add Reservation
-                                </button>
+                                <button type="submit">Add Reservation</button>
                             </div>
                         </form>
                     </div>
