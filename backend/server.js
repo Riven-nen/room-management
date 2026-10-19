@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 const express = require("express")
 const cors = require("cors")
 const authRoutes = require("./routes/auth")
@@ -8,7 +10,7 @@ const app = express()
 const reservationRoutes = require("./routes/reservation.js")
 
 app.use(cors({
-    origin: "http://localhost:4000",
+    origin: ["http://localhost:4000", "http://localhost:5173"],
     credentials: true
 }))
 

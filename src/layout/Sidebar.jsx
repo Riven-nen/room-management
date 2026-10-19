@@ -4,23 +4,19 @@ import { LayoutDashboardIcon, LogOut, BookIcon, Calendar, RobotArm, Settings, Ch
 import {UserContext} from '../auth/UserContext.jsx'
 import {useContext} from 'react'
 
-function Sidebar({ page, setPage }) {
+function Sidebar({ page, setPage, role }) {
     const {setUser} = useContext(UserContext)
 
     const handleLogout = async (event) => {
         event.preventDefault()
-
-        console.log("LOGOUT FIRED")
-
-        await fetch(
-            "http://localhost:3000/api/auth/logout",
-            {
-                method: "POST"
-            }
-        )
-
+        await fetch("http://localhost:3000/api/auth/logout", { method: "POST" })
         setUser(null)
     }
+
+    // Only Admin can manage Labs
+    const isAdmin = role === "admin"
+    // Admin and Teachers can see Analytics
+    const canSeeAnalytics = role === "admin" || role === "teacher"
 
     return (
         <div className="sidebar-container">
@@ -32,55 +28,41 @@ function Sidebar({ page, setPage }) {
             <div className="sidebar-items">
                 <ul>
                     <li>
-                        <button
-                            onClick={() => setPage("Dashboard")}
-                            className={page === "Dashboard" ? "active" : ""}
-                        >
+                        <button onClick={() => setPage("Dashboard")} className={page === "Dashboard" ? "active" : ""}>
                             <LayoutDashboardIcon /> Dashboard
                         </button>
                     </li>
 
                     <li>
-                        <button
-                            onClick={() => setPage("Reservation")}
-                            className={page === "Reservation" ? "active" : ""}
-                        >
-                            <BookIcon /> Laboratory Booking
+                        <button onClick={() => setPage("Reservation")} className={page === "Reservation" ? "active" : ""}>
+                            <BookIcon /> Work Booking
                         </button>
                     </li>
 
                     <li>
-                        <button
-                            onClick={() => setPage("ScheduleViewer")}
-                            className={page === "ScheduleViewer" ? "active" : ""}
-                        >
+                        <button onClick={() => setPage("ScheduleViewer")} className={page === "ScheduleViewer" ? "active" : ""}>
                             <Calendar /> Schedule Viewer
                         </button>
                     </li>
 
-                    <li>
-                        <button
-                            onClick={() => setPage("LabManagement")}
-                            className={page === "LabManagement" ? "active" : ""}
-                        >
-                            <RobotArm /> Lab Management
-                        </button>
-                    </li>
+                    {isAdmin && (
+                        <li>
+                            <button onClick={() => setPage("LabManagement")} className={page === "LabManagement" ? "active" : ""}>
+                                <RobotArm /> Lab Management
+                            </button>
+                        </li>
+                    )}
+
+                    {canSeeAnalytics && (
+                        <li>
+                            <button onClick={() => setPage("AnalyticsReports")} className={page === "AnalyticsReports" ? "active" : ""}>
+                                <ChartBar /> Analytics Reports
+                            </button>
+                        </li>
+                    )}
 
                     <li>
-                        <button
-                            onClick={() => setPage("AnalyticsReports")}
-                            className={page === "AnalyticsReports" ? "active" : ""}
-                        >
-                            <ChartBar /> Analytics Reports
-                        </button>
-                    </li>
-
-                    <li>
-                        <button
-                            onClick={() => setPage("Settings")}
-                            className={page === "Settings" ? "active" : ""}
-                        >
+                        <button onClick={() => setPage("Settings")} className={page === "Settings" ? "active" : ""}>
                             <Settings /> Settings
                         </button>
                     </li>
@@ -88,7 +70,9 @@ function Sidebar({ page, setPage }) {
             </div>
 
             <div className="sidebar-bottom">
-                <button className="new-booking">+ New Booking</button>
+                <button className="new-booking" onClick={() => setPage("Reservation")}>
+                    + New Work Booking
+                </button>
                 <button className="logout" onClick={handleLogout}>
                     <LogOut size={18} />
                     Log Out

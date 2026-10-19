@@ -1,9 +1,11 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 const express = require("express")
 const bcrypt = require("bcrypt")
 const db = require("../db.js")
 const router = express.Router()
 
-async function encryptUser(userPassword) { // easier i guess, idk how it works
+async function encryptUser(userPassword) { 
     try {
         return await bcrypt.hash(userPassword, 10)
     } catch (err) {
@@ -46,7 +48,9 @@ router.post("/login", async (req, res) => {
         message: "Login successful",
         user: {
             id: user.id,
-            email: user.email
+            email: user.email,
+            name: user.name,
+            role: user.role
         }
     })
 })
@@ -55,12 +59,23 @@ router.get("/register", async (req, res) => {
 })
 
 router.get("/me", async (req, res) => {
-    const { rows } = await db.query("SELECT * FROM users where id = $1", [req.session.userId])
-    const user = rows[0]
+    if (!req.session.userId) {
+        return res.status(401).json({ message: "Not logged in" })
+    }
 
-    res.json({
-        user : user
-    })
+    try {
+        const { rows } = await db.query("SELECT id, email, name, role FROM users WHERE id = $1", [req.session.userId])
+        const user = rows[0]
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" })
+        }
+
+        res.json({ user })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Server error" })
+    }
 })
 
 router.post("/logout", (req, res) => {

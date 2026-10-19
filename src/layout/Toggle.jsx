@@ -5,7 +5,7 @@ function Toggle({ checked, onChange }) {
         <label className="toggle">
             <input
                 type="checkbox"
-                checked={checked}
+                checked={checked || false}
                 onChange={onChange}
             />
             <span className="toggle-slider"></span>

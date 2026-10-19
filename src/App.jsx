@@ -1,7 +1,6 @@
 import Login from "./auth/Login.jsx"
 import Navbar from "./layout/Navbar.jsx"
 import Sidebar from "./layout/Sidebar.jsx"
-import Card from "./mainpage/Card.jsx"
 import "./index.css"
 import Dashboard from "./mainpage/Dashboard.jsx"
 import LabManagement from "./mainpage/LabManagement.jsx"
@@ -19,41 +18,21 @@ function App() {
   const [page, setPage] = useState("Dashboard")
 
   const pages = {
-      Dashboard: {
-          component: Dashboard,
-          name: "Dashboard"
-      },
-      LabManagement: {
-          component: LabManagement,
-          name: "Lab Management"
-      },
-      Announcements: {
-          component: Announcements,
-          name: "Announcements"
-      },
-      Settings: {
-          component: Settings,
-          name: "Settings"
-      },
-      ScheduleViewer: {
-          component: ScheduleViewer,
-          name: "Schedule Viewer"
-      },
-      AnalyticsReports: {
-          component: AnalyticsReports,
-          name: "Analytics Reports"
-      },
-      Reservation: {
-          component: Reservation,
-          name: "Laboratory Booking"
-      }
+      Dashboard: { component: Dashboard, name: "Dashboard", allowedRoles: ["student", "teacher", "admin"] },
+      LabManagement: { component: LabManagement, name: "Lab Management", allowedRoles: ["admin"] },
+      Announcements: { component: Announcements, name: "Announcements", allowedRoles: ["student", "teacher", "admin"] },
+      Settings: { component: Settings, name: "Settings", allowedRoles: ["student", "teacher", "admin"] },
+      ScheduleViewer: { component: ScheduleViewer, name: "Schedule Viewer", allowedRoles: ["student", "teacher", "admin"] },
+      AnalyticsReports: { component: AnalyticsReports, name: "Analytics Reports", allowedRoles: ["admin", "teacher"] },
+      Reservation: { component: Reservation, name: "Work Booking", allowedRoles: ["student", "teacher", "admin"] }
   }
 
-  const CurrentPage = pages[page].component
-  const pageTitle = pages[page].name
+  const currentPageData = pages[page] || pages["Dashboard"]
+  const CurrentPage = currentPageData.component
+  const pageTitle = currentPageData.name
 
   if (loading) {
-    return <p></p>
+    return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Loading System...</div>
   }
 
   if (!user) {
@@ -61,17 +40,15 @@ function App() {
   }
   return (
     <>
-      
       <div className="app-layout">
-        <Sidebar page = {page} setPage={setPage}/>
+        <Sidebar page={page} setPage={setPage} role={user.role} />
         <div className="main-container">
-          <Navbar pageTitle={pageTitle}/>
+          <Navbar pageTitle={pageTitle} />
           <div className="main-content">
             <CurrentPage/>
           </div>
         </div>
       </div>
-
     </>
   )
 }

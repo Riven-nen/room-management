@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
@@ -15,6 +16,8 @@ router.get("/all", async (req, res) => {
                 reservations.time_start,
                 reservations.time_end,
                 reservations.status,
+                reservations.purpose,
+                reservations.participants,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
                 users.id AS user_id,
@@ -33,7 +36,9 @@ router.get("/all", async (req, res) => {
             user: reservation.user_name || reservation.user_email,
             start: reservation.time_start,
             end: reservation.time_end,
-            status: reservation.status
+            status: reservation.status,
+            purpose: reservation.purpose,
+            participants: reservation.participants
         }))
 
         res.json({ reservations })
@@ -57,6 +62,8 @@ router.get("/get", async (req, res) => {
                 reservations.time_start,
                 reservations.time_end,
                 reservations.status,
+                reservations.purpose,
+                reservations.participants,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
                 users.id AS user_id,
@@ -82,7 +89,9 @@ router.get("/get", async (req, res) => {
                 user: reservation.user_name || reservation.user_email,
                 start: reservation.time_start,
                 end: reservation.time_end,
-                status: reservation.status
+                status: reservation.status,
+                purpose: reservation.purpose,
+                participants: reservation.participants
             }
         })
     } catch (error) {
@@ -92,11 +101,11 @@ router.get("/get", async (req, res) => {
 })
 
 router.post("/add", async (req, res) => {
-    const { roomId, reservedBy, timeStart, timeEnd, status } = req.body
+    const { roomId, reservedBy, timeStart, timeEnd, status, purpose, participants } = req.body
 
-    if (!roomId || !reservedBy || !timeStart || !timeEnd) {
+    if (!roomId || !reservedBy || !timeStart || !timeEnd || !purpose || !participants) {
         return res.status(400).json({
-            error: "Room, user, start time, and end time are required"
+            error: "Room, user, start time, end time, purpose, and participants are required"
         })
     }
 
@@ -157,11 +166,13 @@ router.post("/add", async (req, res) => {
                 time_end,
                 reserved_by,
                 room_id,
-                status
+                status,
+                purpose,
+                participants
             )
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, time_start, time_end, reserved_by, room_id, status
-        `, [start, end, reservedBy, roomId, reservationStatus])
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose, participants
+        `, [start, end, reservedBy, roomId, reservationStatus, purpose, participants])
 
         res.status(201).json({
             message: "Reservation created successfully",
@@ -179,11 +190,11 @@ router.post("/add", async (req, res) => {
 })
 
 router.put("/edit", async (req, res) => {
-    const { id, roomId, reservedBy, timeStart, timeEnd, status } = req.body
+    const { id, roomId, reservedBy, timeStart, timeEnd, status, purpose, participants } = req.body
 
-    if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status) {
+    if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status || !purpose || !participants) {
         return res.status(400).json({
-            error: "Reservation ID, room, user, start time, end time, and status are required"
+            error: "All fields are required"
         })
     }
 
@@ -253,10 +264,12 @@ router.put("/edit", async (req, res) => {
                 time_end = $2,
                 reserved_by = $3,
                 room_id = $4,
-                status = $5
-            WHERE id = $6
-            RETURNING id, time_start, time_end, reserved_by, room_id, status
-        `, [start, end, reservedBy, roomId, status, id])
+                status = $5,
+                purpose = $6,
+                participants = $7
+            WHERE id = $8
+            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose, participants
+        `, [start, end, reservedBy, roomId, status, purpose, participants, id])
 
         res.json({
             message: "Reservation updated successfully",
