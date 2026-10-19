@@ -4,7 +4,7 @@ import Card from "./Card"
 import PlaceholderLab from "../assets/placeholder-lab.jpg"
 import Toggle from "../layout/Toggle.jsx"
 import Modal from "../layout/Modal.jsx"
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { UserContext } from "../auth/UserContext.jsx"
 
 function LabManagement() {
@@ -14,6 +14,8 @@ function LabManagement() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
     const [showPCModal, setShowPCModal] = useState(false)
+
+    const [teachers, setTeachers] = useState([])
 
     const [activeLab, setActiveLab] = useState(null)
     const [computers, setComputers] = useState([])
@@ -28,12 +30,25 @@ function LabManagement() {
     const [roomBuilding, setRoomBuilding] = useState("")
     const [roomCapacity, setRoomCapacity] = useState("")
     const [roomPCS, setRoomPCS] = useState("")
+    const [roomCoordinator, setRoomCoordinator] = useState("")
 
     const [editRoom, setEditRoom] = useState("")
     const [editRoomName, setEditRoomName] = useState("")
     const [editRoomBuilding, setEditRoomBuilding] = useState("")
     const [editRoomCapacity, setEditRoomCapacity] = useState("")
     const [editRoomPCS, setEditRoomPCS] = useState("")
+    const [editCoordinator, setEditCoordinator] = useState("")
+
+    useEffect(() => {
+        const fetchTeachers = async () => {
+            const res = await fetch("http://localhost:3000/api/lab/get-teachers", { credentials: "include" })
+            if (res.ok) {
+                const data = await res.json()
+                setTeachers(data.teachers || [])
+            }
+        }
+        fetchTeachers()
+    }, [])
 
     const refreshLabs = async () => {
         const labsResponse = await fetch("http://localhost:3000/api/lab/all", { credentials: "include" })
@@ -47,12 +62,19 @@ function LabManagement() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ roomName, roomBuilding, roomCapacity, roomPCS })
+            body: JSON.stringify({ 
+                roomName, 
+                roomBuilding, 
+                roomCapacity, 
+                roomPCS,
+                coordinatorId: roomCoordinator || null
+            })
         })
+
         if (response.ok) {
             await refreshLabs()
             setShowModal(false)
-            setRoomName(""); setRoomBuilding(""); setRoomCapacity(""); setRoomPCS("")
+            setRoomName(""); setRoomBuilding(""); setRoomCapacity(""); setRoomPCS(""); setRoomCoordinator("")
         }
     }
 
@@ -62,6 +84,7 @@ function LabManagement() {
         setEditRoomBuilding(lab.location)
         setEditRoomCapacity(lab.capacity)
         setEditRoomPCS(lab.computer_count)
+        setEditCoordinator(lab.coordinator_id || "")
         setShowEditModal(true)
     }
 
@@ -72,9 +95,15 @@ function LabManagement() {
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({
-                roomName: editRoom, newRoomName: editRoomName, roomBuilding: editRoomBuilding, roomCapacity: editRoomCapacity, roomPCS: editRoomPCS
+                roomName: editRoom,
+                newRoomName: editRoomName,
+                roomBuilding: editRoomBuilding,
+                roomCapacity: editRoomCapacity,
+                roomPCS: editRoomPCS,
+                coordinatorId: editCoordinator || null
             })
         })
+
         if (response.ok) {
             await refreshLabs()
             setEditRoom(editRoomName)
@@ -89,72 +118,64 @@ function LabManagement() {
             credentials: "include",
             body: JSON.stringify({ roomName: editRoom })
         })
+
         if (response.ok) {
             await refreshLabs()
             setShowEditModal(false)
         }
     }
 
-    // --- ROOM MAINTENANCE ---
     const handleToggleMaintenance = (lab) => {
-        console.log("1. TOGGLE CLICKED FOR:", lab.name, "Status:", lab.maintenance)
         if (!lab.maintenance) {
             setMaintenanceLab(lab)
             setMaintenanceReason("")
             setMaintenanceUntil("")
             setShowMaintenanceModal(true)
         } else {
-            console.log("Turning maintenance OFF directly")
             submitMaintenance(lab.name, false, null, null)
         }
     }
 
     const submitMaintenance = async (roomName, status, reason, until) => {
-        console.log("2. SUBMITTING TO BACKEND:", { roomName, status, reason, until })
-        try {
-            const response = await fetch("http://localhost:3000/api/lab/maintenance", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    roomName: roomName,
-                    maintenance: status,
-                    maintenanceReason: reason,
-                    maintenanceUntil: until
-                })
+        const response = await fetch("http://localhost:3000/api/lab/maintenance", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                roomName: roomName,
+                maintenance: status,
+                maintenanceReason: reason,
+                maintenanceUntil: until
             })
-            console.log("3. BACKEND RESPONSE:", response.status)
+        })
 
-            if (response.ok) {
-                await refreshLabs()
-                setShowMaintenanceModal(false)
-            } else {
-                const errorData = await response.json()
-                console.error("BACKEND ERROR:", errorData)
-                alert("Failed: " + (errorData.error || "Unknown error"))
-            }
-        } catch (error) {
-            console.error("FETCH NETWORK ERROR:", error)
-            alert("Network error. Check backend terminal.")
+        if (response.ok) {
+            await refreshLabs()
+            setShowMaintenanceModal(false)
+        } else {
+            alert("Failed to update maintenance status")
         }
     }
 
     const handleMaintenanceSubmit = (e) => {
         e.preventDefault()
-        console.log("Form submitted inside modal")
         submitMaintenance(maintenanceLab.name, true, maintenanceReason, maintenanceUntil)
     }
 
-    // --- PC LAYOUT ---
     const openPCLayout = async (lab) => {
         setActiveLab(lab)
         setSelectedPC(null)
         setShowPCModal(true)
+        
         try {
             const res = await fetch(`http://localhost:3000/api/lab/get-computers?roomId=${lab.id}`, { credentials: "include" })
             const data = await res.json()
-            if (res.ok) setComputers(data.computers || [])
-        } catch (error) { console.error(error) }
+            if (res.ok) {
+                setComputers(data.computers || [])
+            }
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const handlePCClick = (pc) => {
@@ -174,13 +195,16 @@ function LabManagement() {
                 credentials: "include",
                 body: JSON.stringify({ computerId, isMaintenance, maintenanceReason: reason })
             })
+
             if (res.ok) {
                 const pcRes = await fetch(`http://localhost:3000/api/lab/get-computers?roomId=${activeLab.id}`, { credentials: "include" })
                 const pcData = await pcRes.json()
                 if (pcRes.ok) setComputers(pcData.computers || [])
                 setSelectedPC(null)
             }
-        } catch (error) { console.error(error) }
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const submitPCMaintenance = (e) => {
@@ -208,6 +232,19 @@ function LabManagement() {
                     <input type="text" placeholder="Building" value={roomBuilding} onChange={(e) => setRoomBuilding(e.target.value)} required />
                     <input type="number" placeholder="Capacity" value={roomCapacity} onChange={(e) => setRoomCapacity(e.target.value)} required />
                     <input type="number" placeholder="Available PCs" value={roomPCS} onChange={(e) => setRoomPCS(e.target.value)} required />
+                    
+                    <label style={{display: 'block', marginTop: '10px', fontWeight: 'bold', fontSize: '14px'}}>Assign Coordinator</label>
+                    <select 
+                        value={roomCoordinator} 
+                        onChange={(e) => setRoomCoordinator(e.target.value)}
+                        style={{width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '6px', border: '1px solid #ccc'}}
+                    >
+                        <option value="">No Coordinator (Admin Only)</option>
+                        {teachers.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                    </select>
+
                     <button type="submit">Add Room</button>
                 </form>
             </Modal>
@@ -218,6 +255,19 @@ function LabManagement() {
                     <input type="text" placeholder="Building" value={editRoomBuilding} onChange={(e) => setEditRoomBuilding(e.target.value)} required />
                     <input type="number" placeholder="Capacity" value={editRoomCapacity} onChange={(e) => setEditRoomCapacity(e.target.value)} required />
                     <input type="number" placeholder="Available PCs" value={editRoomPCS} onChange={(e) => setEditRoomPCS(e.target.value)} required />
+                    
+                    <label style={{display: 'block', marginTop: '10px', fontWeight: 'bold', fontSize: '14px'}}>Assign Coordinator</label>
+                    <select 
+                        value={editCoordinator} 
+                        onChange={(e) => setEditCoordinator(e.target.value)}
+                        style={{width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '6px', border: '1px solid #ccc'}}
+                    >
+                        <option value="">No Coordinator (Admin Only)</option>
+                        {teachers.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                    </select>
+
                     <button type="submit">Save Changes</button>
                     <button type="button" className="lab-management-delete" onClick={handleDelete}>
                         <Trash2 /> Delete Lab
@@ -228,7 +278,7 @@ function LabManagement() {
             <Modal isOpen={showMaintenanceModal} onClose={() => setShowMaintenanceModal(false)} title={`Maintenance: ${maintenanceLab?.name}`}>
                 <form onSubmit={handleMaintenanceSubmit}>
                     <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold'}}>Reason for Maintenance</label>
-                    <input type="text" placeholder="e.g. Broken AC" value={maintenanceReason} onChange={(e) => setMaintenanceReason(e.target.value)} required style={{marginBottom: '16px'}} />
+                    <input type="text" placeholder="e.g. Broken AC, Full Room Repair" value={maintenanceReason} onChange={(e) => setMaintenanceReason(e.target.value)} required style={{marginBottom: '16px'}} />
                     <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold'}}>Estimated Date Available</label>
                     <input type="datetime-local" value={maintenanceUntil} onChange={(e) => setMaintenanceUntil(e.target.value)} required style={{marginBottom: '16px'}} />
                     <button type="submit" style={{backgroundColor: '#dc2626'}}>Put Lab Under Maintenance</button>
@@ -275,19 +325,30 @@ function LabManagement() {
             <div className="lab-management-content">
                 <Card className="lab-management-stats lab-management-bookings" columns={3}>
                     <div className="lab-management-stats-icon-wrapper icon-door"><DoorOpen size={32}/></div>
-                    <div className="lab-management-stats-title-number"><p>Total Laboratories</p><h2>{labs.length} Rooms</h2></div>
+                    <div className="lab-management-stats-title-number">
+                        <p>Total Laboratories</p><h2>{labs.length} Rooms</h2>
+                    </div>
                 </Card>
                 <Card className="lab-management-stats lab-management-reservationsr" columns={3}>
                     <div className="lab-management-stats-icon-wrapper icon-monitor"><Monitor size={32}/></div>
-                    <div className="lab-management-stats-title-number"><p>Total Computers</p><h2>{labs.reduce((total, lab) => total + Number(lab.computer_count), 0)} Units</h2></div>
+                    <div className="lab-management-stats-title-number">
+                        <p>Total Computers</p>
+                        <h2>{labs.reduce((total, lab) => total + Number(lab.computer_count), 0)} Units</h2>
+                    </div>
                 </Card>
                 <Card className="lab-management-stats lab-management-utilization" columns={3}>
                     <div className="lab-management-stats-icon-wrapper icon-person"><User2 size={32} color="#00195c"/></div>
-                    <div className="lab-management-stats-title-number"><p>Seating Capacity</p><h2>{labs.reduce((total, lab) => total + Number(lab.capacity), 0)} Persons</h2></div>
+                    <div className="lab-management-stats-title-number">
+                        <p>Seating Capacity</p>
+                        <h2>{labs.reduce((total, lab) => total + Number(lab.capacity), 0)} Persons</h2>
+                    </div>
                 </Card>
                 <Card className="lab-management-stats lab-management-alerts" columns={3}>
                     <div className="lab-management-stats-icon-wrapper icon-wrench"><Wrench size={32}/></div>
-                    <div className="lab-management-stats-title-number"><p>Pending Repairs</p><h2>{labs.filter(lab => lab.maintenance).length} Rooms</h2></div>
+                    <div className="lab-management-stats-title-number">
+                        <p>Pending Repairs</p>
+                        <h2>{labs.filter(lab => lab.maintenance).length} Rooms</h2>
+                    </div>
                 </Card>
 
                 {labs.map((lab) => (
@@ -296,24 +357,46 @@ function LabManagement() {
                         <div className="lab-management-labcard-info">
                             <div className="lab-management-labcard-info-title">
                                 <h2>{lab.name}</h2>
-                                <div className="lab-management-labcard-info-title-location"><MapPin /><p>{lab.location}</p></div>
+                                <div className="lab-management-labcard-info-title-location">
+                                    <MapPin /><p>{lab.location}</p>
+                                </div>
                             </div>
+
                             <div className="lab-management-labcard-info-capacity">
-                                <div className="lab-management-labcard-info-capacity-item"><p>CAPACITY</p><h2>{lab.capacity}</h2></div>
-                                <div className="lab-management-labcard-info-capacity-item"><p>PCS</p><h2>{lab.computer_count}</h2></div>
+                                <div className="lab-management-labcard-info-capacity-item">
+                                    <p>CAPACITY</p><h2>{lab.capacity}</h2>
+                                </div>
+                                <div className="lab-management-labcard-info-capacity-item">
+                                    <p>PCS</p><h2>{lab.computer_count}</h2>
+                                </div>
                             </div>
+
+                            <p style={{ margin: '4px 0', fontSize: '13px', color: '#64748b' }}>
+                                <strong>Coordinator:</strong> {lab.coordinator_name || "None"}
+                            </p>
+
                             <div className="lab-management-labcard-info-diag">
                                 <p>Whole Room Maintenance</p>
                                 <Toggle checked={lab.maintenance} onChange={() => handleToggleMaintenance(lab)} />
                             </div>
+
                             {lab.maintenance && (
                                 <div style={{fontSize: '11px', color: '#dc2626', backgroundColor: '#f8d7da', padding: '8px', borderRadius: '4px', width: '100%', boxSizing: 'border-box'}}>
                                     <strong>Reason:</strong> {lab.maintenance_reason} <br/>
-                                    <strong>Until:</strong> {lab.maintenance_until ? new Date(lab.maintenance_until).toLocaleString() : "TBD"}
+                                    <strong>Until:</strong> {new Date(lab.maintenance_until).toLocaleString()}
                                 </div>
                             )}
-                            <button onClick={() => openPCLayout(lab)} style={{marginTop: '10px', padding: '8px', backgroundColor: '#00195c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'}}>View PC Layout</button>
-                            <button type="button" className="lab-management-labcard-info-diag-edit" onClick={() => handleEditClick(lab)}><Pen /><p>Edit Details</p></button>
+
+                            <button 
+                                onClick={() => openPCLayout(lab)}
+                                style={{marginTop: '10px', padding: '8px', backgroundColor: '#00195c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'}}
+                            >
+                                View PC Layout
+                            </button>
+
+                            <button type="button" className="lab-management-labcard-info-diag-edit" onClick={() => handleEditClick(lab)}>
+                                <Pen /><p>Edit Details</p>
+                            </button>
                         </div>
                     </Card>
                 ))}

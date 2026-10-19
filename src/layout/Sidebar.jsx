@@ -13,31 +13,35 @@ function Sidebar({ page, setPage, role }) {
         setUser(null)
     }
 
-    // Only Admin can manage Labs
     const isAdmin = role === "admin"
-    // Admin and Teachers can see Analytics
-    const canSeeAnalytics = role === "admin" || role === "teacher"
+    const canBookLabs = role === "admin" || role === "teacher"
+    const isStudent = role === "student"
 
     return (
         <div className="sidebar-container">
             <div className="sidebar-title">
-                <img src={logo} />
+                <img src={logo} alt="Logo" />
                 <h3>LCUP <br /> Laboratory</h3>
             </div>
 
             <div className="sidebar-items">
                 <ul>
-                    <li>
-                        <button onClick={() => setPage("Dashboard")} className={page === "Dashboard" ? "active" : ""}>
-                            <LayoutDashboardIcon /> Dashboard
-                        </button>
-                    </li>
+                    {/* HIDE DASHBOARD FROM STUDENTS */}
+                    {!isStudent && (
+                        <li>
+                            <button onClick={() => setPage("Dashboard")} className={page === "Dashboard" ? "active" : ""}>
+                                <LayoutDashboardIcon /> Dashboard
+                            </button>
+                        </li>
+                    )}
 
-                    <li>
-                        <button onClick={() => setPage("Reservation")} className={page === "Reservation" ? "active" : ""}>
-                            <BookIcon /> Work Booking
-                        </button>
-                    </li>
+                    {canBookLabs && (
+                        <li>
+                            <button onClick={() => setPage("Reservation")} className={page === "Reservation" ? "active" : ""}>
+                                <BookIcon /> Work Booking
+                            </button>
+                        </li>
+                    )}
 
                     <li>
                         <button onClick={() => setPage("ScheduleViewer")} className={page === "ScheduleViewer" ? "active" : ""}>
@@ -46,19 +50,18 @@ function Sidebar({ page, setPage, role }) {
                     </li>
 
                     {isAdmin && (
-                        <li>
-                            <button onClick={() => setPage("LabManagement")} className={page === "LabManagement" ? "active" : ""}>
-                                <RobotArm /> Lab Management
-                            </button>
-                        </li>
-                    )}
-
-                    {canSeeAnalytics && (
-                        <li>
-                            <button onClick={() => setPage("AnalyticsReports")} className={page === "AnalyticsReports" ? "active" : ""}>
-                                <ChartBar /> Analytics Reports
-                            </button>
-                        </li>
+                        <>
+                            <li>
+                                <button onClick={() => setPage("LabManagement")} className={page === "LabManagement" ? "active" : ""}>
+                                    <RobotArm /> Lab Management
+                                </button>
+                            </li>
+                            <li>
+                                <button onClick={() => setPage("AnalyticsReports")} className={page === "AnalyticsReports" ? "active" : ""}>
+                                    <ChartBar /> Analytics Reports
+                                </button>
+                            </li>
+                        </>
                     )}
 
                     <li>
@@ -70,9 +73,12 @@ function Sidebar({ page, setPage, role }) {
             </div>
 
             <div className="sidebar-bottom">
-                <button className="new-booking" onClick={() => setPage("Reservation")}>
-                    + New Work Booking
-                </button>
+                {canBookLabs && (
+                    <button className="new-booking" onClick={() => setPage("Reservation")}>
+                        + New Work Booking
+                    </button>
+                )}
+                
                 <button className="logout" onClick={handleLogout}>
                     <LogOut size={18} />
                     Log Out

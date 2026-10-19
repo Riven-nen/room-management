@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
@@ -21,7 +20,11 @@ router.post("/add", async (req, res) => {
 
 router.get("/all", async (req, res) => {
     try {
-        const {rows} = await db.query("SELECT * FROM rooms")
+        const {rows} = await db.query(`
+            SELECT rooms.*, users.name AS coordinator_name 
+            FROM rooms 
+            LEFT JOIN users ON rooms.coordinator_id = users.id
+        `)
         res.json({ labs: rows })
     } catch (error) {
         console.error(error)
@@ -29,12 +32,22 @@ router.get("/all", async (req, res) => {
     }
 })
 
+router.get("/get-teachers", async (req, res) => {
+    try {
+        const { rows } = await db.query("SELECT id, name FROM users WHERE role IN ('teacher', 'admin')")
+        res.json({ teachers: rows })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to get teachers" })
+    }
+})
+
 router.put("/edit", async (req, res) => {
-    const { roomName, newRoomName, roomBuilding, roomCapacity, roomPCS } = req.body
+    const { roomName, newRoomName, roomBuilding, roomCapacity, roomPCS, coordinatorId } = req.body
     try {
         const {rowCount} = await db.query(
-            "UPDATE rooms SET name = $1, location = $2, capacity = $3, computer_count = $4 WHERE name = $5",
-            [newRoomName, roomBuilding, roomCapacity, roomPCS, roomName]
+            "UPDATE rooms SET name = $1, location = $2, capacity = $3, computer_count = $4, coordinator_id = $5 WHERE name = $6",
+            [newRoomName, roomBuilding, roomCapacity, roomPCS, coordinatorId || null, roomName]
         )
         if (rowCount === 0) return res.status(404).json({ error: "Laboratory not found" })
         res.json({ message: "Laboratory updated successfully" })
@@ -57,13 +70,8 @@ router.delete("/delete", async (req, res) => {
     }
 })
 
-// --- MAINTENANCE ROUTE ---
 router.put("/maintenance", async (req, res) => {
-    console.log("=== MAINTENANCE ROUTE HIT ===")
-    console.log("Request Body:", req.body)
-    
     const { roomName, maintenance, maintenanceReason, maintenanceUntil } = req.body
-
     try {
         let reason = maintenance ? maintenanceReason : null
         let until = maintenance ? maintenanceUntil : null
@@ -73,21 +81,14 @@ router.put("/maintenance", async (req, res) => {
             `UPDATE rooms SET maintenance = $1, maintenance_reason = $2, maintenance_until = $3 WHERE name = $4`,
             [maintenance, reason, until, roomName]
         )
-
-        if (rowCount === 0) {
-            console.log("ERROR: Room not found")
-            return res.status(404).json({ error: "Laboratory not found" })
-        }
-
-        console.log("SUCCESS: Room updated")
+        if (rowCount === 0) return res.status(404).json({ error: "Laboratory not found" })
         res.json({ message: "Maintenance status updated successfully" })
     } catch (error) {
-        console.error("MAINTENANCE DB ERROR:", error)
+        console.error(error)
         res.status(500).json({ error: "Failed to update maintenance status" })
     }
 })
 
-// --- PC LAYOUT ROUTES ---
 router.get("/get-computers", async (req, res) => {
     const { roomId } = req.query
     try {
