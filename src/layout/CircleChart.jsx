@@ -8,7 +8,10 @@ import {
 import './CircleChart.css'
 
 function CircleChart({ data }) {
-    const colors = ['#041c59', '#ffc641', '#041c59']
+    const colors = ['#041c59', '#ffc641', '#6b7280', '#3b82f6', '#16a34a']
+
+    // Find the lab with the highest percentage for the center text
+    const topLab = data.length > 0 ? data[0].name : "N/A"
 
     return (
         <div className="circle-chart">
@@ -38,7 +41,7 @@ function CircleChart({ data }) {
                 </ResponsiveContainer>
 
                 <div className="circle-chart-center">
-                    <h2>Lab 04</h2>
+                    <h2>{topLab}</h2>
                     <p>Most Used</p>
                 </div>
             </div>
