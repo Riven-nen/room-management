@@ -11,7 +11,7 @@ const notificationRoutes = require("./routes/notifications.js")
 const allowedOrigins = [
     "http://localhost:5173", 
     "http://localhost:4000", 
-    "https://YOUR-VERCEL-URL.vercel.app"
+    "https://room-management-alpha.vercel.app"
 ];
 
 app.use(cors({
