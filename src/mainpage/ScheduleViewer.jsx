@@ -36,7 +36,7 @@ function ScheduleViewer() {
     useEffect(() => {
         const fetchReservations = async () => {
             try {
-                const response = await fetch("https://room-management-475x.onrender.com/api/reservation/all", { credentials: "include" })
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/all`, { credentials: "include" })
                 const data = await response.json()
                 
                 if (response.ok) {

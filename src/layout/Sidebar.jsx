@@ -9,7 +9,7 @@ function Sidebar({ page, setPage, role }) {
 
     const handleLogout = async (event) => {
         event.preventDefault()
-        await fetch("https://room-management-475x.onrender.com/api/auth/logout", { method: "POST" })
+        await fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, { method: "POST" })
         setUser(null)
     }
 

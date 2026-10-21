@@ -10,8 +10,8 @@ import "./Reservation.css"
 const locales = { "en-US": enUS }
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
 
-const API_URL = "https://room-management-475x.onrender.com/api/reservation"
-const LAB_API_URL = "https://room-management-475x.onrender.com/api/lab"
+const API_URL = `${import.meta.env.VITE_API_URL}/api/reservation`
+const LAB_API_URL = `${import.meta.env.VITE_API_URL}/api/lab`
 
 const pad = (n) => String(n).padStart(2, "0")
 

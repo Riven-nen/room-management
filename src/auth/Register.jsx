@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import './Login.css'
 import logo from '../assets/logo.png'
 import { useState, useContext } from 'react'
@@ -15,7 +16,7 @@ function Register({ onSwitchToLogin }) {
         setError("")
 
         try {
-            const response = await fetch("https://room-management-475x.onrender.com/api/auth/register", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 

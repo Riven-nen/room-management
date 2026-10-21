@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState, useContext } from "react"
 import Card from "./Card"
 import { Check, X, Search, MapPin } from "lucide-react"
@@ -24,7 +25,7 @@ function BookingsManager() {
 
     const fetchReservations = async () => {
         try {
-            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/all", { credentials: "include" })
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/all`, { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setReservations(data.reservations)
@@ -42,7 +43,7 @@ function BookingsManager() {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/update-status", {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/update-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

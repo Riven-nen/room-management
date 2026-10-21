@@ -41,7 +41,7 @@ function LabManagement() {
 
     useEffect(() => {
         const fetchTeachers = async () => {
-            const res = await fetch("https://room-management-475x.onrender.com/api/lab/get-teachers", { credentials: "include" })
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/get-teachers`, { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setTeachers(data.teachers || [])
@@ -51,14 +51,14 @@ function LabManagement() {
     }, [])
 
     const refreshLabs = async () => {
-        const labsResponse = await fetch("https://room-management-475x.onrender.com/api/lab/all", { credentials: "include" })
+        const labsResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/all`, { credentials: "include" })
         const data = await labsResponse.json()
         setLabs(data.labs)
     }
 
     const handleAddSubmit = async (event) => {
         event.preventDefault()
-        const response = await fetch("https://room-management-475x.onrender.com/api/lab/add", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/add`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -90,7 +90,7 @@ function LabManagement() {
 
     const handleEditSubmit = async (event) => {
         event.preventDefault()
-        const response = await fetch("https://room-management-475x.onrender.com/api/lab/edit", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/edit`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -112,7 +112,7 @@ function LabManagement() {
     }
 
     const handleDelete = async () => {
-        const response = await fetch("https://room-management-475x.onrender.com/api/lab/delete", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/delete`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -137,7 +137,7 @@ function LabManagement() {
     }
 
     const submitMaintenance = async (roomName, status, reason, until) => {
-        const response = await fetch("https://room-management-475x.onrender.com/api/lab/maintenance", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/maintenance`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -168,7 +168,7 @@ function LabManagement() {
         setShowPCModal(true)
         
         try {
-            const res = await fetch(`https://room-management-475x.onrender.com/api/lab/get-computers?roomId=${lab.id}`, { credentials: "include" })
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/get-computers?roomId=${lab.id}`, { credentials: "include" })
             const data = await res.json()
             if (res.ok) {
                 setComputers(data.computers || [])
@@ -189,7 +189,7 @@ function LabManagement() {
 
     const togglePCStatus = async (computerId, isMaintenance, reason) => {
         try {
-            const res = await fetch("https://room-management-475x.onrender.com/api/lab/toggle-pc", {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/toggle-pc`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -197,7 +197,7 @@ function LabManagement() {
             })
 
             if (res.ok) {
-                const pcRes = await fetch(`https://room-management-475x.onrender.com/api/lab/get-computers?roomId=${activeLab.id}`, { credentials: "include" })
+                const pcRes = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/get-computers?roomId=${activeLab.id}`, { credentials: "include" })
                 const pcData = await pcRes.json()
                 if (pcRes.ok) setComputers(pcData.computers || [])
                 setSelectedPC(null)

@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 import {
     Save,
     SlidersHorizontal,
     User,
     Wrench,
-    ShieldCheck,
     Lock
 } from 'lucide-react'
 import Card from './Card.jsx'
@@ -32,7 +33,7 @@ function Settings() {
         if (!name.trim()) return alert("Name cannot be empty")
         setSaving(true)
         try {
-            const response = await fetch("https://room-management-475x.onrender.com/api/auth/update-profile", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/update-profile`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -63,7 +64,7 @@ function Settings() {
 
         setChangingPass(true)
         try {
-            const response = await fetch("https://room-management-475x.onrender.com/api/auth/change-password", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/change-password`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

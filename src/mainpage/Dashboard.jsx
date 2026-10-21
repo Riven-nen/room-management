@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import Card from "./Card.jsx"
 import './Dashboard.css'
-import { Calendar, Download, Book, CalendarArrowDownIcon, Gauge, Wrench, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Calendar, Download, Book, CalendarArrowDownIcon, Wrench, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import BarChart from '../layout/BarChart.jsx'
 import CircleChart from '../layout/CircleChart.jsx'
 import ReservationTable from '../layout/ReservationTable.jsx'
@@ -14,12 +15,12 @@ function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/all", { credentials: "include" })
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/all`, { credentials: "include" })
             if (res.ok) {
                 const d = await res.json()
                 setReservations(d.reservations)
             }
-            const analyticsRes = await fetch("https://room-management-475x.onrender.com/api/reservation/analytics", { credentials: "include" })
+            const analyticsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/analytics`, { credentials: "include" })
             if (analyticsRes.ok) {
                 const a = await analyticsRes.json()
                 setAnalytics(a)
@@ -35,7 +36,7 @@ function Dashboard() {
 
     const handleApprove = async (id) => {
         try {
-            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/update-status", {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/update-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -49,7 +50,7 @@ function Dashboard() {
 
     const handleReject = async (id) => {
         try {
-            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/update-status", {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/update-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
