@@ -166,7 +166,17 @@ function Reservation() {
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return setError("Invalid reservation date")
         if (!isSameDay(start, end)) return setError("Reservations must start and end on the same day.")
         if (start >= end) return setError("End time must be after start time")
-        if (start < new Date()) return setError("Cannot create a reservation in the past")
+        
+        // NEW TIME VALIDATION
+        const now = new Date()
+        if (end <= now) {
+            return setError("Cannot create a reservation in the past. The end time has already passed.")
+        }
+        
+        const bufferTime = new Date(now.getTime() - 5 * 60000) 
+        if (start < bufferTime) {
+            return setError("The start time is too close to the current time or in the past.")
+        }
 
         const startHour = start.getHours() + start.getMinutes() / 60
         const endHour = end.getHours() + end.getMinutes() / 60
@@ -342,14 +352,16 @@ function Reservation() {
                         </div>
 
                         <div style={{ display: 'flex', padding: '16px 24px', borderTop: '1px solid #e5e5e5', width: '100%', boxSizing: 'border-box' }}>
-                            <button 
-                                type="button" 
-                                onClick={() => handleCancelBooking(selectedReservation.id)}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#dc2626', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                <Trash2 size={18} />
-                                Cancel Booking
-                            </button>
+                            {(user.role === "admin" || user.name === selectedReservation.user) && (
+                                <button 
+                                    type="button" 
+                                    onClick={() => handleCancelBooking(selectedReservation.id)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#dc2626', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                                >
+                                    <Trash2 size={18} />
+                                    Cancel Booking
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

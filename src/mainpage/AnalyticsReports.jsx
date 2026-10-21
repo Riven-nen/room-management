@@ -1,158 +1,118 @@
 import "./AnalyticsReports.css"
 import Card from "./Card";
-import {File, Sheet} from 'lucide-react'
+import { File, Sheet } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts"
 
-const data = [
-    { day: "Week 1", value: 40 },
-    { day: "Week 2", value: 65 },
-    { day: "Week 3", value: 45 },
-    { day: "Week 4", value: 90 },
-]
-
 function AnalyticsReports() {
+    const [analytics, setAnalytics] = useState({
+        totalBookings: 0,
+        labUsage: [],
+        peakHours: []
+    })
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const response = await fetch("http://localhost:3000/api/reservation/analytics", { credentials: "include" })
+                const data = await response.json()
+                if (response.ok) {
+                    setAnalytics(data)
+                }
+            } catch (error) {
+                console.error("Failed to load analytics:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchAnalytics()
+    }, [])
+
+    if (loading) return <h2>Loading Analytics...</h2>
+
+    const topLab = analytics.labUsage.length > 0 ? analytics.labUsage[0].name : "N/A"
+
     return (
         <>
             <div className="analytics-control">
                 <div className="analytics-control-left">
-                    <select>
-                        <option value="">Feb 21 - Feb 27 2026</option>
-                    </select>
-                    <select>
-                        <option value="">Department</option>
-                    </select>
+                    <select><option value="">All Time</option></select>
+                    <select><option value="">All Departments</option></select>
                 </div>
                 <div className="analytics-control-right">
-                    <button>
-                        <File/>
-                        Export PDF
-                    </button>
-                    <button>
-                        <Sheet/>
-                        Export Excel
-                    </button>
+                    <button><File/> Export PDF</button>
+                    <button><Sheet/> Export Excel</button>
                 </div>
             </div>
 
             <div className="analytics-content">
                 <Card className="analytics-content-dash" columns={4}>
                     <div className="analytics-content-dash-title">
-                        <p>Total Bookings</p>
-                        <span>+32%</span>
+                        <p>Total Approved Bookings</p>
+                        <span>All Time</span>
                     </div>
-                    <h1>1,284</h1   >
-                    <p>Past 10 days</p>
+                    <h1>{analytics.totalBookings.toLocaleString()}</h1>
+                    <p>Across all laboratories</p>
                 </Card>
 
                 <Card className="analytics-content-dash" columns={4}>
                     <div className="analytics-content-dash-title">
-                        <p>Total Bookings</p>
-                        <span>+32%</span>
+                        <p>Most Used Lab</p>
                     </div>
-                    <h1>1,284</h1   >
-                    <p>Past 10 days</p>
+                    <h1 style={{fontSize: '24px'}}>{topLab}</h1>
+                    <p>Highest booking frequency</p>
                 </Card>
 
                 <Card className="analytics-content-dash" columns={4}>
                     <div className="analytics-content-dash-title">
-                        <p>Total Bookings</p>
-                        <span>+32%</span>
+                        <p>System Status</p>
+                        <span style={{backgroundColor: '#d9f3e5', color: '#218838'}}>Active</span>
                     </div>
-                    <h1>1,284</h1   >
-                    <p>Past 10 days</p>
+                    <h1>100%</h1>
+                    <p>Data synced with database</p>
                 </Card>
 
                 <Card className="analytics-content-dash" columns={4}>
                     <div className="analytics-content-dash-title">
-                        <p>Total Bookings</p>
-                        <span>+32%</span>
+                        <p>Database</p>
+                        <span>Connected</span>
                     </div>
-                    <h1>1,284</h1   >
-                    <p>Past 10 days</p>
+                    <h1>PostgreSQL</h1>
+                    <p>Supabase Cloud</p>
                 </Card>
 
-                <Card columns={11} rows={4}>
-                    <h2>Booking History Trend</h2>
-                    <ResponsiveContainer width="100%" height="95%">
-                        <LineChart data={data}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis 
-                                interval={0}
-                                dataKey="day" 
-                                padding={{ left: 25, right: 25 }}
-                            />
+                <Card columns={8} rows={4}>
+                    <h2>Peak Usage Hours (Weekly)</h2>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <BarChart data={analytics.peakHours}>
+                            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                            <XAxis dataKey="hour" />
+                            <YAxis />
                             <Tooltip />
-                            <Line
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#041c59"
-                                strokeWidth={3}
-                                dot={false}
-                            />
-                        </LineChart>
+                            <Bar dataKey="bookings" fill="#041c59" radius={[4, 4, 0, 0]} />
+                        </BarChart>
                     </ResponsiveContainer>
                 </Card>
-                <Card columns={5} rows={4} className="analytics-content-usage">
-                    <h2> Top Faculty Usage </h2>
 
-                    <div className="analytics-usage-entry">
-                        <div className="analytics-usage-entry-top">
-                            <p> Dr. Edna Dayao</p>
-                            <span> 87% </span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: "87%" }}></div>
-                        </div>
+                <Card columns={8} rows={4} className="analytics-content-usage">
+                    <h2> Top Laboratory Usage </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '16px' }}>
+                        {analytics.labUsage.map((lab, index) => (
+                            <div className="analytics-usage-entry" key={index}>
+                                <div className="analytics-usage-entry-top">
+                                    <p>{lab.name}</p>
+                                    <span>{lab.value}%</span>
+                                </div>
+                                <div className="progress-bar">
+                                    <div className="progress-bar-fill" style={{ width: `${lab.value}%` }}></div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-
-                    <div className="analytics-usage-entry">
-                        <div className="analytics-usage-entry-top">
-                            <p> Dr. Edna Dayao</p>
-                            <span> 87% </span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: "87%" }}></div>
-                        </div>
-                    </div>
-
-                    <div className="analytics-usage-entry">
-                        <div className="analytics-usage-entry-top">
-                            <p> Dr. Edna Dayao</p>
-                            <span> 87% </span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: "87%" }}></div>
-                        </div>
-                    </div>
-
-                    <div className="analytics-usage-entry">
-                        <div className="analytics-usage-entry-top">
-                            <p> Dr. Edna Dayao</p>
-                            <span> 87% </span>
-                        </div>
-                        <div className="progress-bar">
-                            <div className="progress-bar-fill" style={{ width: "87%" }}></div>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card columns={8} rows={3}>
-                    <h2>Peak Usage Hours (Weekly)</h2>
-                </Card>
-                <Card columns={8} rows={3}>
-                    <h2>Laboratory Efficiency</h2>
-                </Card>
-
-                <Card columns={16} rows={2}>
-
                 </Card>
             </div>
         </>

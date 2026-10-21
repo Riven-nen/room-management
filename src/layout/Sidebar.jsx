@@ -1,6 +1,6 @@
 import './Sidebar.css'
 import logo from '../assets/logo.png'
-import { LayoutDashboardIcon, LogOut, BookIcon, Calendar, RobotArm, Settings, ChartBar } from 'lucide-react'
+import { LayoutDashboardIcon, LogOut, BookIcon, Calendar, RobotArm, Settings, ChartBar, ClipboardList } from 'lucide-react'
 import {UserContext} from '../auth/UserContext.jsx'
 import {useContext} from 'react'
 
@@ -13,9 +13,10 @@ function Sidebar({ page, setPage, role }) {
         setUser(null)
     }
 
-    const isAdmin = role === "admin"
-    const canBookLabs = role === "admin" || role === "teacher"
-    const isStudent = role === "student"
+    const userRole = role ? role.toLowerCase() : ""
+    const isAdmin = userRole === "admin"
+    const canBookLabs = userRole === "admin" || userRole === "teacher"
+    const isStudent = userRole === "student"
 
     return (
         <div className="sidebar-container">
@@ -26,7 +27,6 @@ function Sidebar({ page, setPage, role }) {
 
             <div className="sidebar-items">
                 <ul>
-                    {/* HIDE DASHBOARD FROM STUDENTS */}
                     {!isStudent && (
                         <li>
                             <button onClick={() => setPage("Dashboard")} className={page === "Dashboard" ? "active" : ""}>
@@ -49,19 +49,28 @@ function Sidebar({ page, setPage, role }) {
                         </button>
                     </li>
 
+                    {canBookLabs && (
+                        <li>
+                            <button onClick={() => setPage("BookingsManager")} className={page === "BookingsManager" ? "active" : ""}>
+                                <ClipboardList /> {isAdmin ? "All Bookings" : "Coordinator Hub"}
+                            </button>
+                        </li>
+                    )}
+
                     {isAdmin && (
-                        <>
-                            <li>
-                                <button onClick={() => setPage("LabManagement")} className={page === "LabManagement" ? "active" : ""}>
-                                    <RobotArm /> Lab Management
-                                </button>
-                            </li>
-                            <li>
-                                <button onClick={() => setPage("AnalyticsReports")} className={page === "AnalyticsReports" ? "active" : ""}>
-                                    <ChartBar /> Analytics Reports
-                                </button>
-                            </li>
-                        </>
+                        <li>
+                            <button onClick={() => setPage("LabManagement")} className={page === "LabManagement" ? "active" : ""}>
+                                <RobotArm /> Lab Management
+                            </button>
+                        </li>
+                    )}
+
+                    {isAdmin && (
+                        <li>
+                            <button onClick={() => setPage("AnalyticsReports")} className={page === "AnalyticsReports" ? "active" : ""}>
+                                <ChartBar /> Analytics Reports
+                            </button>
+                        </li>
                     )}
 
                     <li>

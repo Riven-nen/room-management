@@ -10,9 +10,11 @@ import Settings from "./mainpage/Settings.jsx"
 import ScheduleViewer from "./mainpage/ScheduleViewer.jsx"
 import AnalyticsReports from "./mainpage/AnalyticsReports.jsx"
 import Reservation from "./mainpage/Reservation.jsx"
+import BookingsManager from "./mainpage/BookingsManager.jsx"
 
 import { useContext, useState, useEffect } from 'react'
 import { UserContext } from './auth/UserContext.jsx'
+import { NotificationProvider } from './auth/NotificationContext.jsx' // IMPORT THIS
 
 function App() {
   const { user, setUser, loading } = useContext(UserContext)
@@ -21,7 +23,8 @@ function App() {
 
   useEffect(() => {
     if (user) {
-        if (user.role === "student") {
+        const role = user.role ? user.role.toLowerCase() : "";
+        if (role === "student") {
             setPage("ScheduleViewer")
         } else {
             setPage("Dashboard")
@@ -36,12 +39,14 @@ function App() {
       Settings: { component: Settings, name: "Settings" },
       ScheduleViewer: { component: ScheduleViewer, name: "Schedule Viewer" },
       AnalyticsReports: { component: AnalyticsReports, name: "Analytics Reports" },
-      Reservation: { component: Reservation, name: "Work Booking" }
+      Reservation: { component: Reservation, name: "Work Booking" },
+      BookingsManager: { component: BookingsManager, name: "Manage Bookings" }
   }
 
   let currentPageData = pages[page] || pages["Dashboard"]
+  const userRole = user?.role ? user.role.toLowerCase() : "";
 
-  if (user && user.role === "student" && (page === "Reservation" || page === "LabManagement" || page === "AnalyticsReports" || page === "Dashboard")) {
+  if (user && userRole === "student" && (page === "Reservation" || page === "LabManagement" || page === "AnalyticsReports" || page === "Dashboard" || page === "BookingsManager")) {
       currentPageData = pages["ScheduleViewer"]
   }
 
@@ -60,7 +65,7 @@ function App() {
   }
 
   return (
-    <>
+    <NotificationProvider>
       <div className="app-layout">
         <Sidebar page={page} setPage={setPage} role={user.role} />
         <div className="main-container">
@@ -70,7 +75,7 @@ function App() {
           </div>
         </div>
       </div>
-    </>
+    </NotificationProvider>
   )
 }
 
