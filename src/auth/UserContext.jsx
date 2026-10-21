@@ -11,7 +11,7 @@ export function UserProvider({children}) {
     useEffect(() => {
         const fetchUserAndLabs = async () => {
             try {
-                const userRes = await fetch("http://localhost:3000/api/auth/me", {
+                const userRes = await fetch("https://room-management-475x.onrender.com/api/auth/me", {
                     credentials: "include"
                 })
                 if (userRes.ok) {
@@ -21,7 +21,7 @@ export function UserProvider({children}) {
                     setUser(null)
                 }
 
-                const labsRes = await fetch("http://localhost:3000/api/lab/all", {
+                const labsRes = await fetch("https://room-management-475x.onrender.com/api/lab/all", {
                     credentials: "include"
                 })
                 if (labsRes.ok) {

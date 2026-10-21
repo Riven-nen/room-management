@@ -36,7 +36,7 @@ function ScheduleViewer() {
     useEffect(() => {
         const fetchReservations = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/reservation/all", { credentials: "include" })
+                const response = await fetch("https://room-management-475x.onrender.com/api/reservation/all", { credentials: "include" })
                 const data = await response.json()
                 
                 if (response.ok) {

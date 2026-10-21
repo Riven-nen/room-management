@@ -8,17 +8,35 @@ const app = express()
 const reservationRoutes = require("./routes/reservation.js")
 const notificationRoutes = require("./routes/notifications.js")
 
+const allowedOrigins = [
+    "http://localhost:5173", 
+    "http://localhost:4000", 
+    "https://YOUR-VERCEL-URL.vercel.app"
+];
+
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:4000"],
+    origin: function(origin, callback){
+        if(!origin) return callback(null, true);
+        if(allowedOrigins.indexOf(origin) === -1){
+            return callback(new Error('CORS blocked'), false);
+        }
+        return callback(null, true);
+    },
     credentials: true
 }))
 
 app.use(express.json())
 
+app.set('trust proxy', 1);
 app.use(session({
     secret: "secret-text",
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        httpOnly: true
+    }
 }))
 
 app.use("/api/auth", authRoutes)
@@ -26,6 +44,8 @@ app.use("/api/lab", labRoutes)
 app.use("/api/reservation", reservationRoutes)
 app.use("/api/notifications", notificationRoutes)
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000")
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
 })

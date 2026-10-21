@@ -10,7 +10,7 @@ export function NotificationProvider({ children }) {
     const fetchNotifications = async () => {
         if (!user) return
         try {
-            const res = await fetch("http://localhost:3000/api/notifications", { credentials: "include" })
+            const res = await fetch("https://room-management-475x.onrender.com/api/notifications", { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setNotifications(data.notifications)
@@ -29,7 +29,7 @@ export function NotificationProvider({ children }) {
 
     const markAsRead = async () => {
         try {
-            await fetch("http://localhost:3000/api/notifications/read", { method: "PUT", credentials: "include" })
+            await fetch("https://room-management-475x.onrender.com/api/notifications/read", { method: "PUT", credentials: "include" })
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
         } catch (err) {
             console.error("Failed to mark notifications as read", err)

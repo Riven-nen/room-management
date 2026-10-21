@@ -14,12 +14,12 @@ function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch("http://localhost:3000/api/reservation/all", { credentials: "include" })
+            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/all", { credentials: "include" })
             if (res.ok) {
                 const d = await res.json()
                 setReservations(d.reservations)
             }
-            const analyticsRes = await fetch("http://localhost:3000/api/reservation/analytics", { credentials: "include" })
+            const analyticsRes = await fetch("https://room-management-475x.onrender.com/api/reservation/analytics", { credentials: "include" })
             if (analyticsRes.ok) {
                 const a = await analyticsRes.json()
                 setAnalytics(a)
@@ -35,7 +35,7 @@ function Dashboard() {
 
     const handleApprove = async (id) => {
         try {
-            const res = await fetch("http://localhost:3000/api/reservation/update-status", {
+            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/update-status", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -49,7 +49,7 @@ function Dashboard() {
 
     const handleReject = async (id) => {
         try {
-            const res = await fetch("http://localhost:3000/api/reservation/update-status", {
+            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/update-status", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

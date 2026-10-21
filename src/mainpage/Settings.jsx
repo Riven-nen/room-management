@@ -32,7 +32,7 @@ function Settings() {
         if (!name.trim()) return alert("Name cannot be empty")
         setSaving(true)
         try {
-            const response = await fetch("http://localhost:3000/api/auth/update-profile", {
+            const response = await fetch("https://room-management-475x.onrender.com/api/auth/update-profile", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -63,7 +63,7 @@ function Settings() {
 
         setChangingPass(true)
         try {
-            const response = await fetch("http://localhost:3000/api/auth/change-password", {
+            const response = await fetch("https://room-management-475x.onrender.com/api/auth/change-password", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

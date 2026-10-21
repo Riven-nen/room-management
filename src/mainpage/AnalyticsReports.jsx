@@ -17,7 +17,7 @@ function AnalyticsReports() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/reservation/analytics", { credentials: "include" })
+                const response = await fetch("https://room-management-475x.onrender.com/api/reservation/analytics", { credentials: "include" })
                 const data = await response.json()
                 if (response.ok) {
                     setAnalytics(data)

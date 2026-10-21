@@ -9,7 +9,7 @@ function Sidebar({ page, setPage, role }) {
 
     const handleLogout = async (event) => {
         event.preventDefault()
-        await fetch("http://localhost:3000/api/auth/logout", { method: "POST" })
+        await fetch("https://room-management-475x.onrender.com/api/auth/logout", { method: "POST" })
         setUser(null)
     }
 

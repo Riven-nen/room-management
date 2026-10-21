@@ -24,7 +24,7 @@ function BookingsManager() {
 
     const fetchReservations = async () => {
         try {
-            const res = await fetch("http://localhost:3000/api/reservation/all", { credentials: "include" })
+            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/all", { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setReservations(data.reservations)
@@ -42,7 +42,7 @@ function BookingsManager() {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            const res = await fetch("http://localhost:3000/api/reservation/update-status", {
+            const res = await fetch("https://room-management-475x.onrender.com/api/reservation/update-status", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
