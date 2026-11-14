@@ -1,44 +1,65 @@
-# AI-Driven IT Knowledge Mapping & Learning Recommendation System
+# LCUP Laboratory Management System
 
-## Overview
-This is a **freelance project** developed for a university capstone defense. The client required a modernized academic tracking system that moves beyond simple grade storage and provides actionable insights for both students and faculty.
+**Status:** Delivered / Freelance Project
+**Client:** La Consolacion University Philippines (LCUP)
 
-The platform is a full-stack Next.js application powered by Supabase and an AI tutor (Groq). It features role-based access for students, admins, and Deans, visualizes academic progress through interactive graphs, and provides AI-driven career recommendations based on actual curriculum mapping.
+## Project Overview
+A full-stack web application designed to streamline the scheduling, maintenance tracking, and analytics for university computer laboratories. The system was built to address specific administrative requirements, including role-based access, coordinator approval workflows, and real-time facility monitoring.
 
 ## Key Features
-
-### Student Dashboard
-- **Knowledge Map:** A dynamic radar chart visualizing the student's proficiency across 7 core IT domains (Programming, Networking, Database, etc.) based on their actual grades.
-- **AI Recommendation Matrix:** Compares the student's current domain scores against target Career Paths (e.g., Web Developer, Data Analyst) and generates personalized advice.
-- **Interactive Roadmap:** A visual prerequisite tree showing which courses are locked, in progress, or completed.
-
-### Course Syllabus and AI Tutor
-- **Deep Course Trees:** Each course contains a nested, hierarchical tree of topics (up to 127 nodes) that unlock sequentially as the student progresses.
-- **AI Course Tutor:** A context-aware chatbot that knows the specific course syllabus and can answer questions based on the current lesson material.
-- **Quizzes and Grading:** Students can take topic quizzes. The system automatically calculates the grade using the Philippine grading system and updates their overall proficiency.
-- **Resource Library:** Each topic includes curated external links (videos, articles, docs) for further reading.
-
-### Admin Panel
-- **Program Analytics:** Aggregated bar charts showing where the entire student body is struggling, allowing the Dean to adjust the curriculum.
-- **Manage Topics:** A live CRUD interface for Admins to add new topics, create prerequisites, and link resources directly from the UI without touching SQL.
-- **Role-Based Access Control:** Secure login for Students and Admins with Supabase Row Level Security (RLS).
+- Role-Based Access Control (RBAC): Distinct interfaces for Students, Teachers, and Admins.
+- Coordinator Approval Workflow: Admins can assign Coordinators to specific labs; Coordinators approve or reject booking requests.
+- Comprehensive Booking System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
+- Maintenance Tracking: Toggle whole-room maintenance or track individual PC issues with reasons and expected return dates.
+- Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
+- Notification System: In-app alerts for new requests and approval status changes.
 
 ## Tech Stack
-- **Framework:** Next.js 15 (App Router)
-- **Database and Auth:** Supabase (PostgreSQL + RLS)
-- **Styling:** CSS Modules (No Tailwind)
-- **Graph Layout:** React Flow + Dagre
-- **AI Integration:** Groq API (Llama 3)
-- **Charts:** Recharts
+- Frontend: React.js, Vite, Recharts, React Big Calendar
+- Backend: Node.js, Express.js, Express-Session
+- Database: PostgreSQL (Hosted on Supabase)
+- Deployment: Vercel (Frontend), Render (Backend)
 
-## Setup and Installation
-1. Clone the repository.
-2. Run `npm install`.
-3. Create a `.env.local` file with:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `GROQ_API_KEY`
-4. Run `npm run dev`.
+## Local Development Setup
 
-## Project Status
-Delivered as a freelance engagement. The core functionality is complete and ready for the university capstone defense.
+### 1. Database Setup (Supabase)
+
+Ensure you have a PostgreSQL database running and execute the required schema (tables: users, rooms, reservations, computers, notifications).
+
+### 2. Backend Setup
+
+Navigate to the backend folder and install dependencies:
+
+    cd backend
+    npm install
+
+Create a .env file in the backend folder with the following variables:
+
+    DATABASE_URL=your_supabase_connection_string
+    NODE_ENV=development
+
+Run the backend server:
+
+    node server.js
+
+### 3. Frontend Setup
+
+Navigate to the frontend folder and install dependencies:
+
+    cd frontend
+    npm install
+
+Create a .env file in the frontend folder with the following variable:
+
+    VITE_API_URL=http://localhost:3000
+
+Run the frontend development server:
+
+    npm run dev
+
+## Deployment Notes
+- Backend (Render): Requires NODE_ENV=production and DATABASE_URL (using the Supabase Transaction Pooler on port 6543). Session cookies are configured with sameSite: "none" and secure: true for cross-domain requests.
+- Frontend (Vercel): Requires the VITE_API_URL environment variable pointing to the live Render backend URL.
+
+---
+*Completed as a freelance engagement.*
