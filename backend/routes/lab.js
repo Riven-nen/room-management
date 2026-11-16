@@ -1,8 +1,11 @@
 const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
+const { requireAuth, requireRole } = require("../middleware/auth.js")
 
-router.post("/add", async (req, res) => {
+const adminOnly = requireRole("admin")
+
+router.post("/add", requireAuth, adminOnly, async (req, res) => {
     console.log("LAB ADD ROUTE HIT")
     const {roomName, roomBuilding, roomCapacity, roomPCS} = req.body
     try {
@@ -18,7 +21,7 @@ router.post("/add", async (req, res) => {
     }
 })
 
-router.get("/all", async (req, res) => {
+router.get("/all", requireAuth, async (req, res) => {
     try {
         const {rows} = await db.query(`
             SELECT rooms.*, users.name AS coordinator_name 
@@ -32,9 +35,9 @@ router.get("/all", async (req, res) => {
     }
 })
 
-router.get("/get-teachers", async (req, res) => {
+router.get("/get-teachers", requireAuth, adminOnly, async (req, res) => {
     try {
-        const { rows } = await db.query("SELECT id, name FROM users WHERE role IN ('teacher', 'admin')")
+        const { rows } = await db.query("SELECT id, name FROM users WHERE role IN ('teacher', 'faculty', 'admin', 'mis_staff')")
         res.json({ teachers: rows })
     } catch (error) {
         console.error(error)
@@ -42,7 +45,7 @@ router.get("/get-teachers", async (req, res) => {
     }
 })
 
-router.put("/edit", async (req, res) => {
+router.put("/edit", requireAuth, adminOnly, async (req, res) => {
     const { roomName, newRoomName, roomBuilding, roomCapacity, roomPCS, coordinatorId } = req.body
     try {
         const {rowCount} = await db.query(
@@ -58,7 +61,7 @@ router.put("/edit", async (req, res) => {
     }
 })
 
-router.delete("/delete", async (req, res) => {
+router.delete("/delete", requireAuth, adminOnly, async (req, res) => {
     const {roomName} = req.body
     try {
         const {rowCount} = await db.query("DELETE FROM rooms WHERE name = $1", [roomName])
@@ -70,7 +73,7 @@ router.delete("/delete", async (req, res) => {
     }
 })
 
-router.put("/maintenance", async (req, res) => {
+router.put("/maintenance", requireAuth, adminOnly, async (req, res) => {
     const { roomName, maintenance, maintenanceReason, maintenanceUntil } = req.body
     try {
         let reason = maintenance ? maintenanceReason : null
@@ -89,7 +92,7 @@ router.put("/maintenance", async (req, res) => {
     }
 })
 
-router.get("/get-computers", async (req, res) => {
+router.get("/get-computers", requireAuth, adminOnly, async (req, res) => {
     const { roomId } = req.query
     try {
         let { rows } = await db.query("SELECT * FROM computers WHERE room_id = $1 ORDER BY pc_number ASC", [roomId])
@@ -112,7 +115,7 @@ router.get("/get-computers", async (req, res) => {
     }
 })
 
-router.put("/toggle-pc", async (req, res) => {
+router.put("/toggle-pc", requireAuth, adminOnly, async (req, res) => {
     const { computerId, isMaintenance, maintenanceReason } = req.body
     try {
         await db.query("UPDATE computers SET is_maintenance = $1, maintenance_reason = $2 WHERE id = $3", [isMaintenance, maintenanceReason, computerId])

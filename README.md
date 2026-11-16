@@ -7,12 +7,37 @@
 A full-stack web application designed to streamline the scheduling, maintenance tracking, and analytics for university computer laboratories. The system was built to address specific administrative requirements, including role-based access, coordinator approval workflows, and real-time facility monitoring.
 
 ## Key Features
-- Role-Based Access Control (RBAC): Distinct interfaces for Students, Teachers, and Admins.
+- Role-Based Access Control (RBAC): Distinct interfaces for Students, Faculty, MIS Staff, and Admins.
 - Coordinator Approval Workflow: Admins can assign Coordinators to specific labs; Coordinators approve or reject booking requests.
 - Comprehensive Booking System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
 - Maintenance Tracking: Toggle whole-room maintenance or track individual PC issues with reasons and expected return dates.
 - Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
 - Notification System: In-app alerts for new requests and approval status changes.
+- Semester Class Schedule: Admin-published, searchable by course, section, year level, subject, instructor, and room.
+- University Master Calendar: Admin-managed holidays, exams, enrollment periods, and university events.
+- Registration Codes: Hashed, expiring, revocable codes protect Faculty, Admin, and MIS Staff sign-ups.
+
+## Schedules and Role-Based Access
+
+Roles: `student`, `faculty`, `admin`, `mis_staff`.
+
+- All signed-in users can view the **Class Schedule** and **University Calendar**.
+- Only `admin` can create, edit, or delete semesters, class schedule entries, master calendar events, and registration codes.
+- `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a registration code generated from **Registration Codes**.
+- Legacy `teacher` accounts are treated as `faculty` by the application.
+
+### Database Migrations
+
+Run from `backend/`:
+
+```bash
+node migrations/run.js 001_add_roles.sql
+node migrations/run.js 002_schedules.sql
+# Run only after the updated backend is deployed:
+node migrations/run.js 003_convert_teacher_role.sql
+```
+
+Set `SESSION_SECRET` in production. Use `NODE_ENV=development` only for local development over plain http.
 
 ## Tech Stack
 - Frontend: React.js, Vite, Recharts, React Big Calendar
