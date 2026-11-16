@@ -9,7 +9,7 @@ export function UserProvider({children}) {
     const [labs, setLabs] = useState([])
 
     useEffect(() => {
-        const fetchUserAndLabs = async () => {
+        const fetchUser = async () => {
             try {
                 const userRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                     credentials: "include"
@@ -20,23 +20,41 @@ export function UserProvider({children}) {
                 } else {
                     setUser(null)
                 }
+            } catch (error) {
+                console.error("Error fetching user:", error)
+                setUser(null)
+            } finally {
+                setLoading(false)
+            }
+        }
 
+        fetchUser()
+    }, [])
+
+    useEffect(() => {
+        const userId = user?.id
+        if (!userId) return
+
+        const controller = new AbortController()
+
+        const fetchLabs = async () => {
+            try {
                 const labsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/all`, {
-                    credentials: "include"
+                    credentials: "include",
+                    signal: controller.signal
                 })
                 if (labsRes.ok) {
                     const labsData = await labsRes.json()
                     setLabs(labsData.labs)
                 }
             } catch (error) {
-                console.error("Error fetching initial data:", error)
-            } finally {
-                setLoading(false) 
+                if (error.name !== "AbortError") console.error("Error fetching labs:", error)
             }
         }
 
-        fetchUserAndLabs()
-    }, [])
+        fetchLabs()
+        return () => controller.abort()
+    }, [user?.id])
     
     return (
         <UserContext.Provider value={{ 

@@ -1,13 +1,16 @@
 const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
+const { requireAuth, requireRole } = require("../middleware/auth.js")
+
+const STATUS_VALUES = ["processing", "pending", "approved", "rejected", "no_show", "cancelled", "in_progress"]
 
 const normalize = (value) => {
     if (!value) return value
     return String(value).replace("T", " ").trim()
 }
 
-router.get("/all", async (req, res) => {
+router.get("/all", requireAuth, async (req, res) => {
     try {
         const { rows } = await db.query(`
             SELECT
@@ -52,7 +55,7 @@ router.get("/all", async (req, res) => {
     }
 })
 
-router.get("/get", async (req, res) => {
+router.get("/get", requireAuth, async (req, res) => {
     const { id } = req.query
     if (!id) return res.status(400).json({ error: "Reservation ID is required" })
 
@@ -98,7 +101,7 @@ router.get("/get", async (req, res) => {
     }
 })
 
-router.post("/add", async (req, res) => {
+router.post("/add", requireAuth, requireRole("admin", "faculty"), async (req, res) => {
     const { roomId, reservedBy, timeStart, timeEnd, status, purpose, participants } = req.body
 
     if (!roomId || !reservedBy || !timeStart || !timeEnd || !purpose || !participants) {
@@ -113,6 +116,10 @@ router.post("/add", async (req, res) => {
         const roomResult = await db.query("SELECT id, name, maintenance, coordinator_id FROM rooms WHERE id = $1", [roomId])
         if (roomResult.rows.length === 0) return res.status(404).json({ error: "Laboratory not found" })
         if (roomResult.rows[0].maintenance) return res.status(409).json({ error: "Laboratory is currently under maintenance" })
+
+        if (req.user.role !== "admin" && String(reservedBy) !== String(req.user.id)) {
+            return res.status(403).json({ error: "You can only create bookings for yourself" })
+        }
 
         const userResult = await db.query("SELECT id, name FROM users WHERE id = $1", [reservedBy])
         if (userResult.rows.length === 0) return res.status(404).json({ error: "User not found" })
@@ -150,7 +157,7 @@ router.post("/add", async (req, res) => {
     }
 })
 
-router.put("/edit", async (req, res) => {
+router.put("/edit", requireAuth, async (req, res) => {
     const { id, roomId, reservedBy, timeStart, timeEnd, status, purpose, participants } = req.body
     if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status || !purpose || !participants) {
         return res.status(400).json({ error: "All fields are required" })
@@ -161,8 +168,15 @@ router.put("/edit", async (req, res) => {
     if (start >= end) return res.status(400).json({ error: "End time must be after start time" })
 
     try {
-        const reservationResult = await db.query("SELECT id FROM reservations WHERE id = $1", [id])
+        const reservationResult = await db.query("SELECT id, reserved_by FROM reservations WHERE id = $1", [id])
         if (reservationResult.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
+
+        const existing = reservationResult.rows[0]
+        const isOwner = String(existing.reserved_by) === String(req.user.id)
+        if (req.user.role !== "admin" && !isOwner) {
+            return res.status(403).json({ error: "You can only edit your own booking" })
+        }
+        const effectiveReservedBy = req.user.role === "admin" ? reservedBy : req.user.id
 
         const roomResult = await db.query("SELECT id, maintenance FROM rooms WHERE id = $1", [roomId])
         if (roomResult.rows.length === 0) return res.status(404).json({ error: "Laboratory not found" })
@@ -180,7 +194,7 @@ router.put("/edit", async (req, res) => {
             SET time_start = $1, time_end = $2, reserved_by = $3, room_id = $4, status = $5, purpose = $6, participants = $7
             WHERE id = $8
             RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose, participants
-        `, [start, end, reservedBy, roomId, status, purpose, participants, id])
+        `, [start, end, effectiveReservedBy, roomId, status, purpose, participants, id])
 
         res.json({ message: "Reservation updated successfully", reservation: rows[0] })
     } catch (error) {
@@ -190,27 +204,36 @@ router.put("/edit", async (req, res) => {
     }
 })
 
-router.put("/update-status", async (req, res) => {
+router.put("/update-status", requireAuth, requireRole("admin", "faculty"), async (req, res) => {
     const { id, status } = req.body
-    try {
-        const { rowCount } = await db.query("UPDATE reservations SET status = $1 WHERE id = $2::int", [status, id])
-        if (rowCount === 0) return res.status(404).json({ error: "Reservation not found" })
 
-        // NOTIFY THE USER WHO MADE THE BOOKING
+    if (!STATUS_VALUES.includes(status)) {
+        return res.status(400).json({ error: "Invalid reservation status" })
+    }
+
+    try {
         const resInfo = await db.query(`
-            SELECT reservations.reserved_by, rooms.name AS room_name 
-            FROM reservations 
-            JOIN rooms ON reservations.room_id = rooms.id 
+            SELECT reservations.reserved_by, rooms.name AS room_name, rooms.coordinator_id
+            FROM reservations
+            JOIN rooms ON reservations.room_id = rooms.id
             WHERE reservations.id = $1
         `, [id])
 
-        if (resInfo.rows.length > 0) {
-            const { reserved_by, room_name } = resInfo.rows[0]
-            await db.query(
-                "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
-                [reserved_by, `Your booking for ${room_name} was ${status}.`]
-            )
+        if (resInfo.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
+
+        const { reserved_by, room_name, coordinator_id } = resInfo.rows[0]
+
+        if (req.user.role !== "admin" && String(coordinator_id) !== String(req.user.id)) {
+            return res.status(403).json({ error: "You can only manage bookings for laboratories you coordinate" })
         }
+
+        await db.query("UPDATE reservations SET status = $1 WHERE id = $2::int", [status, id])
+
+        // NOTIFY THE USER WHO MADE THE BOOKING
+        await db.query(
+            "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
+            [reserved_by, `Your booking for ${room_name} was ${status}.`]
+        )
 
         res.json({ message: `Reservation ${status}` })
     } catch (error) {
@@ -219,17 +242,13 @@ router.put("/update-status", async (req, res) => {
     }
 })
 
-router.delete("/delete", async (req, res) => {
+router.delete("/delete", requireAuth, async (req, res) => {
     const { id } = req.body
-    const userId = req.session.userId
+    const user = req.user
 
     if (!id) return res.status(400).json({ error: "Reservation ID is required" })
-    if (!userId) return res.status(401).json({ error: "Unauthorized" })
 
     try {
-        const userRes = await db.query("SELECT role, name FROM users WHERE id = $1", [userId])
-        const user = userRes.rows[0]
-
         const resRes = await db.query(`
             SELECT reservations.id, reservations.reserved_by, users.name AS reserved_by_name 
             FROM reservations 
@@ -240,7 +259,7 @@ router.delete("/delete", async (req, res) => {
         if (resRes.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
         const reservation = resRes.rows[0]
 
-        if (user.role !== "admin" && user.name !== reservation.reserved_by_name) {
+        if (user.role !== "admin" && String(user.id) !== String(reservation.reserved_by)) {
             return res.status(403).json({ error: "You do not have permission to cancel this booking" })
         }
 
@@ -253,7 +272,7 @@ router.delete("/delete", async (req, res) => {
     }
 })
 
-router.get("/analytics", async (req, res) => {
+router.get("/analytics", requireAuth, requireRole("admin", "faculty", "mis_staff"), async (req, res) => {
     try {
         const totalBookingsResult = await db.query("SELECT COUNT(*) FROM reservations WHERE status = 'approved'")
         const totalBookings = parseInt(totalBookingsResult.rows[0].count)

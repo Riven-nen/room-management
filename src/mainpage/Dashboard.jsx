@@ -7,6 +7,7 @@ import CircleChart from '../layout/CircleChart.jsx'
 import ReservationTable from '../layout/ReservationTable.jsx'
 import { useContext, useEffect, useState } from 'react'
 import { UserContext } from '../auth/UserContext.jsx'
+import { normalizeRole } from '../auth/roles.js'
 
 function Dashboard() {
     const { user, labs } = useContext(UserContext)
@@ -79,10 +80,14 @@ function Dashboard() {
         r.status !== "cancelled"
     ).sort((a, b) => new Date(a.start) - new Date(b.start))
 
+    const role = normalizeRole(user.role)
+    const isAdmin = role === "admin"
+    const isFaculty = role === "faculty"
+
     const pendingToApprove = reservations.filter(res => {
         if (res.status !== "pending") return false;
-        if (user.role === "admin") return true;
-        if (user.role === "teacher") return String(res.coordinator_id) === String(user.id);
+        if (isAdmin) return true;
+        if (isFaculty) return String(res.coordinator_id) === String(user.id);
         return false;
     })
 
@@ -94,7 +99,7 @@ function Dashboard() {
             <div className="dashboard-title">
                 <div className="dashboard-title-left">
                     <label>SYSTEMS STATUS: ONLINE</label>
-                    <h1>{user.role === "admin" ? "IT Laboratory Overview" : "Faculty Dashboard"}</h1>
+                    <h1>{isAdmin ? "IT Laboratory Overview" : isFaculty ? "Faculty Dashboard" : "MIS Dashboard"}</h1>
                 </div>
                 <div className="dashboard-title-right">
                     <button className="dashboard-title-date"> <Calendar size={16}/> {new Date().toLocaleDateString()} </button>

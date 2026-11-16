@@ -3,10 +3,10 @@ const cors = require("cors")
 const authRoutes = require("./routes/auth")
 const labRoutes = require("./routes/lab.js")
 const session = require("express-session")
-const pool = require("./db.js")
 const app = express()
 const reservationRoutes = require("./routes/reservation.js")
 const notificationRoutes = require("./routes/notifications.js")
+const scheduleRoutes = require("./routes/schedule.js")
 
 const allowedOrigins = [
     "http://localhost:5173", 
@@ -28,13 +28,18 @@ app.use(cors({
 app.use(express.json())
 
 app.set('trust proxy', 1);
+
+// Production keeps the cross-site secure cookie. Local development can be run
+// with NODE_ENV=development so the cookie also works over plain http.
+const isDevelopment = process.env.NODE_ENV === "development"
+
 app.use(session({
-    secret: "secret-text",
+    secret: process.env.SESSION_SECRET || "secret-text",
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true,          
-        sameSite: "none",      
+        secure: !isDevelopment,
+        sameSite: isDevelopment ? "lax" : "none",
         httpOnly: true
     }
 }))
@@ -43,6 +48,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/lab", labRoutes)
 app.use("/api/reservation", reservationRoutes)
 app.use("/api/notifications", notificationRoutes)
+app.use("/api/schedule", scheduleRoutes)
 
 const PORT = process.env.PORT || 3000;
 

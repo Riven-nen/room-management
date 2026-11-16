@@ -3,6 +3,7 @@ import { useEffect, useState, useContext } from "react"
 import Card from "./Card"
 import { Check, X, Search, MapPin } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
+import { normalizeRole } from "../auth/roles.js"
 
 const parseLocal = (value) => {
     if (!value) return new Date()
@@ -57,7 +58,7 @@ function BookingsManager() {
         }
     }
 
-    const isTeacher = user.role.toLowerCase() === "teacher"
+    const isTeacher = normalizeRole(user.role) === "faculty"
     const assignedLabs = labs.filter(lab => String(lab.coordinator_id) === String(user.id))
 
     const filteredReservations = reservations.filter(r => {
