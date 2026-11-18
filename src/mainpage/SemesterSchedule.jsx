@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react"
 import { CalendarDays, Search, Clock, MapPin, User, GraduationCap, BookOpen } from "lucide-react"
+import { TableSkeleton } from "../layout/Loading.jsx"
 import "./Schedules.css"
 
 const API = import.meta.env.VITE_API_URL
@@ -211,7 +212,7 @@ function SemesterSchedule() {
                 </div>
 
                 {loading ? (
-                    <div className="schedule-loading">Loading the class schedule...</div>
+                    <TableSkeleton rows={6} columns={6} label="Loading the class schedule" />
                 ) : schedules.length === 0 ? (
                     <div className="schedule-empty">
                         <CalendarDays size={34} color="#94a3b8" />

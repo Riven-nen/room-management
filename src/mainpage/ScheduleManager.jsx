@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Modal from "../layout/Modal.jsx"
 import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck } from "lucide-react"
+import { PageSkeleton } from "../layout/Loading.jsx"
 import "./Schedules.css"
 
 const API = import.meta.env.VITE_API_URL
@@ -287,7 +288,7 @@ function ScheduleManager() {
     }
 
     if (loading) {
-        return <div className="schedule-page"><div className="schedule-loading">Loading schedules...</div></div>
+        return <PageSkeleton label="Loading schedules" stats={3} rows={6} columns={7} />
     }
 
     return (

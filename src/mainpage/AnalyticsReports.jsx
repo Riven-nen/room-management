@@ -1,5 +1,6 @@
 import "./AnalyticsReports.css"
 import Card from "./Card";
+import { PageSkeleton } from "../layout/Loading.jsx";
 import { File, Sheet } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import {
@@ -32,7 +33,7 @@ function AnalyticsReports() {
         fetchAnalytics()
     }, [])
 
-    if (loading) return <h2>Loading Analytics...</h2>
+    if (loading) return <PageSkeleton label="Loading analytics" stats={4} chart rows={4} columns={5} />
 
     const topLab = analytics.labUsage.length > 0 ? analytics.labUsage[0].name : "N/A"
 

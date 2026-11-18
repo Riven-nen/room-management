@@ -3,6 +3,7 @@ import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar"
 import { format, parse, startOfWeek, getDay } from "date-fns"
 import { enUS } from "date-fns/locale"
 import { CalendarRange, MapPin, Clock, Info } from "lucide-react"
+import { CalendarSkeleton, ListSkeleton } from "../layout/Loading.jsx"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "./Schedules.css"
 
@@ -154,7 +155,7 @@ function MasterSchedule() {
             <div className="master-grid">
                 <div className="calendar-shell">
                     {loading ? (
-                        <div className="schedule-loading">Loading the university calendar...</div>
+                        <CalendarSkeleton label="Loading the university calendar" />
                     ) : (
                         <>
                             <Calendar
@@ -217,7 +218,9 @@ function MasterSchedule() {
                             </div>
                         </div>
                         <div style={{ padding: 16 }}>
-                            {upcoming.length === 0 ? (
+                            {loading ? (
+                                <ListSkeleton items={3} label="Loading upcoming events" />
+                            ) : upcoming.length === 0 ? (
                                 <div className="schedule-empty" style={{ padding: "24px 8px" }}>
                                     <CalendarRange size={28} color="#94a3b8" />
                                     <h3>No upcoming events</h3>

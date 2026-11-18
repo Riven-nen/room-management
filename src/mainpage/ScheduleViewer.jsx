@@ -5,6 +5,7 @@ import { enUS } from "date-fns/locale"
 import { UserContext } from "../auth/UserContext.jsx"
 import { MapPin, CheckCircle2, XCircle, Wrench, Clock, CalendarClock } from "lucide-react"
 import "react-big-calendar/lib/css/react-big-calendar.css"
+import { CalendarSkeleton } from "../layout/Loading.jsx"
 import "./ScheduleViewer.css"
 
 const locales = { "en-US": enUS }
@@ -209,7 +210,7 @@ function ScheduleViewer() {
                 </div>
 
                 {loading ? (
-                    <p style={{ padding: '20px' }}>Loading schedule...</p>
+                    <CalendarSkeleton label="Loading laboratory schedule" />
                 ) : (
                     <Calendar
                         localizer={localizer}

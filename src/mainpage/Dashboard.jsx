@@ -8,11 +8,13 @@ import ReservationTable from '../layout/ReservationTable.jsx'
 import { useContext, useEffect, useState } from 'react'
 import { UserContext } from '../auth/UserContext.jsx'
 import { normalizeRole } from '../auth/roles.js'
+import { PageSkeleton } from '../layout/Loading.jsx'
 
 function Dashboard() {
     const { user, labs } = useContext(UserContext)
     const [reservations, setReservations] = useState([])
     const [analytics, setAnalytics] = useState({ weeklyTrends: [], labUsage: [] })
+    const [loading, setLoading] = useState(true)
 
     const fetchData = async () => {
         try {
@@ -28,6 +30,8 @@ function Dashboard() {
             }
         } catch (error) {
             console.error("Failed to fetch dashboard data", error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -93,6 +97,10 @@ function Dashboard() {
 
     const approvedCount = reservations.filter(r => r.status === "approved").length
     const totalPendingCount = reservations.filter(r => r.status === "pending").length
+
+    if (loading) {
+        return <PageSkeleton label="Loading dashboard" stats={4} chart rows={4} columns={5} />
+    }
 
     return (
         <>

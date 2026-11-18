@@ -5,6 +5,7 @@ import { enUS } from "date-fns/locale"
 import { X, Trash2 } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
 import "react-big-calendar/lib/css/react-big-calendar.css"
+import { CalendarSkeleton } from "../layout/Loading.jsx"
 import "./Reservation.css"
 
 const locales = { "en-US": enUS }
@@ -290,7 +291,7 @@ function Reservation() {
 
             <div className="reservation-calendar-card">
                 {loading ? (
-                    <p>Loading bookings...</p>
+                    <CalendarSkeleton label="Loading bookings" />
                 ) : (
                     <Calendar
                         localizer={localizer}

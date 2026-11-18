@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react"
 import { KeyRound, Plus, Copy, Check, ShieldCheck, Ban } from "lucide-react"
+import { TableSkeleton } from "../layout/Loading.jsx"
 import "./Schedules.css"
 
 const API = import.meta.env.VITE_API_URL
@@ -237,7 +238,7 @@ function InviteCodes() {
                 </div>
 
                 {loading ? (
-                    <div className="schedule-loading">Loading registration codes...</div>
+                    <TableSkeleton rows={5} columns={7} label="Loading registration codes" />
                 ) : invites.length === 0 ? (
                     <div className="schedule-empty">
                         <KeyRound size={32} color="#94a3b8" />

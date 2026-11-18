@@ -6,6 +6,7 @@ import Toggle from "../layout/Toggle.jsx"
 import Modal from "../layout/Modal.jsx"
 import { useState, useContext, useEffect } from 'react'
 import { UserContext } from "../auth/UserContext.jsx"
+import { PageSkeleton } from "../layout/Loading.jsx"
 
 function LabManagement() {
     const { labs, setLabs } = useContext(UserContext)
@@ -16,6 +17,7 @@ function LabManagement() {
     const [showPCModal, setShowPCModal] = useState(false)
 
     const [teachers, setTeachers] = useState([])
+    const [loading, setLoading] = useState(true)
 
     const [activeLab, setActiveLab] = useState(null)
     const [computers, setComputers] = useState([])
@@ -41,10 +43,16 @@ function LabManagement() {
 
     useEffect(() => {
         const fetchTeachers = async () => {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/get-teachers`, { credentials: "include" })
-            if (res.ok) {
-                const data = await res.json()
-                setTeachers(data.teachers || [])
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/get-teachers`, { credentials: "include" })
+                if (res.ok) {
+                    const data = await res.json()
+                    setTeachers(data.teachers || [])
+                }
+            } catch (error) {
+                console.error("Failed to load coordinators", error)
+            } finally {
+                setLoading(false)
             }
         }
         fetchTeachers()
@@ -210,6 +218,10 @@ function LabManagement() {
     const submitPCMaintenance = (e) => {
         e.preventDefault()
         togglePCStatus(selectedPC.id, true, pcReason)
+    }
+
+    if (loading) {
+        return <PageSkeleton label="Loading laboratories" stats={4} rows={4} columns={4} />
     }
 
     return (

@@ -11,6 +11,7 @@ import Card from './Card.jsx'
 import './Settings.css'
 import { useState, useContext, useEffect } from 'react'
 import { UserContext } from '../auth/UserContext.jsx'
+import { PageSkeleton } from '../layout/Loading.jsx'
 
 function Settings() {
     const { user, setUser } = useContext(UserContext)
@@ -87,7 +88,7 @@ function Settings() {
         }
     }
 
-    if (!user) return <p>Loading...</p>
+    if (!user) return <PageSkeleton label="Loading settings" stats={0} rows={3} columns={2} />
 
     return (
         <>

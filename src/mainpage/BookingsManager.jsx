@@ -4,6 +4,7 @@ import Card from "./Card"
 import { Check, X, Search, MapPin } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
 import { normalizeRole } from "../auth/roles.js"
+import { PageSkeleton } from "../layout/Loading.jsx"
 
 const parseLocal = (value) => {
     if (!value) return new Date()
@@ -82,7 +83,7 @@ function BookingsManager() {
         }
     }
 
-    if (loading) return <p>Loading bookings...</p>
+    if (loading) return <PageSkeleton label="Loading bookings" stats={4} rows={6} columns={7} />
 
     return (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>

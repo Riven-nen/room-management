@@ -20,6 +20,7 @@ import { useContext, useState } from 'react'
 import { UserContext } from './auth/UserContext.jsx'
 import { NotificationProvider } from './auth/NotificationContext.jsx'
 import { normalizeRole, canAccessPage } from './auth/roles.js'
+import { SystemLoader } from './layout/Loading.jsx'
 
 function App() {
   const { user, loading } = useContext(UserContext)
@@ -62,7 +63,7 @@ function App() {
   const pageTitle = currentPageData.name
 
   if (loading) {
-    return <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Loading System...</div>
+    return <SystemLoader />
   }
 
   if (!user) {
