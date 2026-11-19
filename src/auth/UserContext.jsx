@@ -9,9 +9,15 @@ export function UserProvider({children}) {
     const [labs, setLabs] = useState([])
 
     useEffect(() => {
+        const handleUnauthorized = () => setUser(null)
+        window.addEventListener("auth:unauthorized", handleUnauthorized)
+        return () => window.removeEventListener("auth:unauthorized", handleUnauthorized)
+    }, [])
+
+    useEffect(() => {
         const fetchUser = async () => {
             try {
-                const userRes = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+                const userRes = await fetch(`/api/auth/me`, {
                     credentials: "include"
                 })
                 if (userRes.ok) {
@@ -39,7 +45,7 @@ export function UserProvider({children}) {
 
         const fetchLabs = async () => {
             try {
-                const labsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/lab/all`, {
+                const labsRes = await fetch(`/api/lab/all`, {
                     credentials: "include",
                     signal: controller.signal
                 })

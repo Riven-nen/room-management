@@ -1,7 +1,7 @@
 import "./AnalyticsReports.css"
 import Card from "./Card";
 import { PageSkeleton } from "../layout/Loading.jsx";
-import { File, Sheet } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -18,7 +18,7 @@ function AnalyticsReports() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/analytics`, { credentials: "include" })
+                const response = await fetch(`/api/reservation/analytics`, { credentials: "include" })
                 const data = await response.json()
                 if (response.ok) {
                     setAnalytics(data)
@@ -37,6 +37,30 @@ function AnalyticsReports() {
 
     const topLab = analytics.labUsage.length > 0 ? analytics.labUsage[0].name : "N/A"
 
+    const exportAnalytics = () => {
+        const rows = [
+            ["Metric", "Value"],
+            ["Total Approved Bookings", analytics.totalBookings],
+            ["Most Used Lab", topLab],
+            [],
+            ["Laboratory", "Usage %"],
+            ...analytics.labUsage.map((item) => [item.name, item.value]),
+            [],
+            ["Day", "Bookings"],
+            ...(analytics.weeklyTrends || []).map((item) => [item.day, item.bookings])
+        ]
+        const csv = rows
+            .map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
+            .join("\n")
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+        const url = URL.createObjectURL(blob)
+        const anchor = document.createElement("a")
+        anchor.href = url
+        anchor.download = "analytics-report.csv"
+        anchor.click()
+        URL.revokeObjectURL(url)
+    }
+
     return (
         <>
             <div className="analytics-control">
@@ -45,8 +69,7 @@ function AnalyticsReports() {
                     <select><option value="">All Departments</option></select>
                 </div>
                 <div className="analytics-control-right">
-                    <button><File/> Export PDF</button>
-                    <button><Sheet/> Export Excel</button>
+                    <button onClick={exportAnalytics}><Download /> Export CSV</button>
                 </div>
             </div>
 

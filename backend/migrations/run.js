@@ -1,6 +1,3 @@
-/* eslint-disable no-undef */
-// Minimal migration runner for the room-management Postgres database.
-// Usage (from the backend folder): node migrations/run.js 001_schedules_roles.sql
 const fs = require("fs")
 const path = require("path")
 const { Client } = require("pg")
@@ -15,6 +12,7 @@ if (!file) {
 }
 
 const fullPath = path.isAbsolute(file) ? file : path.join(__dirname, file)
+const filename = path.basename(fullPath)
 const sql = fs.readFileSync(fullPath, "utf8")
 
 const client = new Client({ connectionString: process.env.DATABASE_URL })
@@ -22,9 +20,31 @@ const client = new Client({ connectionString: process.env.DATABASE_URL })
 ;(async () => {
     try {
         await client.connect()
+
+        await client.query(`
+            create table if not exists schema_migrations (
+                filename text primary key,
+                applied_at timestamptz not null default now()
+            )
+        `)
+
+        const applied = await client.query(
+            "select 1 from schema_migrations where filename = $1",
+            [filename]
+        )
+
+        if (applied.rows.length > 0) {
+            console.log(`Skipped ${filename} (already applied)`)
+            return
+        }
+
+        await client.query("BEGIN")
         await client.query(sql)
-        console.log(`Applied ${path.basename(fullPath)}`)
+        await client.query("insert into schema_migrations (filename) values ($1)", [filename])
+        await client.query("COMMIT")
+        console.log(`Applied ${filename}`)
     } catch (error) {
+        await client.query("ROLLBACK").catch(() => {})
         console.error(`Migration failed: ${error.message}`)
         process.exitCode = 1
     } finally {

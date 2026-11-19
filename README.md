@@ -16,15 +16,21 @@ A full-stack web application designed to streamline the scheduling, maintenance 
 - Semester Class Schedule: Admin-published, searchable by course, section, year level, subject, instructor, and room.
 - University Master Calendar: Admin-managed holidays, exams, enrollment periods, and university events.
 - Registration Codes: Hashed, expiring, revocable codes protect Faculty, Admin, and MIS Staff sign-ups.
+- User Management: Admins can change roles, deactivate accounts, and issue temporary passwords.
+- Bulk Schedule Import: Paste or upload CSV to publish class schedules quickly.
 
 ## Schedules and Role-Based Access
 
 Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
 - All signed-in users can view the **Class Schedule** and **University Calendar**.
-- Only `admin` can create, edit, or delete semesters, class schedule entries, master calendar events, and registration codes.
+- Only `admin` can create, edit, or delete semesters, class schedule entries, master calendar events, registration codes, and user accounts.
 - `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a registration code generated from **Registration Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.
+
+### Shared Permissions
+
+Page and capability access lives in `shared/permissions.json`. Both the React router and the Express middleware read the same file so the UI and API cannot drift apart.
 
 ### Database Migrations
 
@@ -33,15 +39,33 @@ Run from `backend/`:
 ```bash
 node migrations/run.js 001_add_roles.sql
 node migrations/run.js 002_schedules.sql
-# Run only after the updated backend is deployed:
 node migrations/run.js 003_convert_teacher_role.sql
+node migrations/run.js 004_hardening.sql
 ```
 
-Set `SESSION_SECRET` in production. Use `NODE_ENV=development` only for local development over plain http.
+`004_hardening.sql` adds the persistent `session` table, consistent id types, reservation overlap protection, room references for schedules, and missing indexes.
+
+### Demo Data
+
+From `backend/`:
+
+```bash
+npm run seed:demo
+```
+
+This creates a `2026-2027 1st Semester`, sample class entries using existing laboratories, and university calendar events. It is idempotent.
+
+## Architecture
+
+- **Frontend:** React 19 + Vite + React Router. Routes are lazy-loaded per page.
+- **API:** Express 5 with same-origin `/api` calls.
+- **Sessions:** `express-session` backed by the Postgres `session` table, so logins survive backend restarts.
+- **Database:** PostgreSQL on Supabase. Reservations use a GiST exclusion constraint to prevent double-booking at the database level.
+- **Deployment:** Vercel rewrites `/api/*` to the Render backend, making cookies first-party and removing the old cross-site cookie dependency.
 
 ## Tech Stack
-- Frontend: React.js, Vite, Recharts, React Big Calendar
-- Backend: Node.js, Express.js, Express-Session
+- Frontend: React.js, Vite, Recharts, React Big Calendar, React Router
+- Backend: Node.js, Express.js, Express-Session, Zod, Helmet, express-rate-limit
 - Database: PostgreSQL (Hosted on Supabase)
 - Deployment: Vercel (Frontend), Render (Backend)
 
@@ -49,42 +73,47 @@ Set `SESSION_SECRET` in production. Use `NODE_ENV=development` only for local de
 
 ### 1. Database Setup (Supabase)
 
-Ensure you have a PostgreSQL database running and execute the required schema (tables: users, rooms, reservations, computers, notifications).
+Ensure you have a PostgreSQL database running and apply the migrations in `backend/migrations/`.
 
 ### 2. Backend Setup
 
-Navigate to the backend folder and install dependencies:
+```bash
+cd backend
+npm install
+cp .env.example .env
+```
 
-    cd backend
-    npm install
+Set `DATABASE_URL` in `backend/.env`, then run:
 
-Create a .env file in the backend folder with the following variables:
+```bash
+npm start
+```
 
-    DATABASE_URL=your_supabase_connection_string
-    NODE_ENV=development
-
-Run the backend server:
-
-    node server.js
+Use `NODE_ENV=development` locally so the session cookie works over plain HTTP.
 
 ### 3. Frontend Setup
 
-Navigate to the frontend folder and install dependencies:
+From the project root:
 
-    cd frontend
-    npm install
+```bash
+npm install
+npm run dev
+```
 
-Create a .env file in the frontend folder with the following variable:
-
-    VITE_API_URL=http://localhost:3000
-
-Run the frontend development server:
-
-    npm run dev
+Vite proxies `/api` to `http://localhost:3000`, so no `VITE_API_URL` is needed. The dev server defaults to port 5173; use `npm run dev -- --port 4000` if another project is already using 5173.
 
 ## Deployment Notes
-- Backend (Render): Requires NODE_ENV=production and DATABASE_URL (using the Supabase Transaction Pooler on port 6543). Session cookies are configured with sameSite: "none" and secure: true for cross-domain requests.
-- Frontend (Vercel): Requires the VITE_API_URL environment variable pointing to the live Render backend URL.
+
+- **Backend (Render):** Set `DATABASE_URL`, `SESSION_SECRET`, and `NODE_ENV=production`. The server refuses to start in production without `SESSION_SECRET`.
+- **Frontend (Vercel):** `vercel.json` rewrites `/api/*` to `https://room-management-475x.onrender.com/api/*`. If the Render URL changes, update `vercel.json`.
+- **Cookies:** Same-origin through the Vercel rewrite, `sameSite: "lax"` and `secure: true` in production.
+- **CORS:** Optional `ALLOWED_ORIGINS` can list exact origins for direct API access. The same-origin rewrite does not depend on CORS.
+- **Health check:** `GET /api/health`.
+
+## CI
+
+`.github/workflows/ci.yml` installs both packages, runs ESLint, builds the frontend, and syntax-checks the backend.
 
 ---
+
 *Completed as a freelance engagement.*

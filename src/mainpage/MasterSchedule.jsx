@@ -9,7 +9,7 @@ import "./Schedules.css"
 
 const locales = { "en-US": enUS }
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
-const API = import.meta.env.VITE_API_URL
+const API = ""
 
 const EVENT_TYPES = {
     event: { label: "University Event", color: "#2563eb" },

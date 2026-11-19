@@ -1,91 +1,90 @@
-import Login from "./auth/Login.jsx"
-import Register from "./auth/Register.jsx" 
-import Navbar from "./layout/Navbar.jsx"
-import Sidebar from "./layout/Sidebar.jsx"
-import "./index.css"
-import Dashboard from "./mainpage/Dashboard.jsx"
-import LabManagement from "./mainpage/LabManagement.jsx"
-import Announcements from "./mainpage/Announcements.jsx"
-import Settings from "./mainpage/Settings.jsx"
-import ScheduleViewer from "./mainpage/ScheduleViewer.jsx"
-import SemesterSchedule from "./mainpage/SemesterSchedule.jsx"
-import MasterSchedule from "./mainpage/MasterSchedule.jsx"
-import ScheduleManager from "./mainpage/ScheduleManager.jsx"
-import InviteCodes from "./mainpage/InviteCodes.jsx"
-import AnalyticsReports from "./mainpage/AnalyticsReports.jsx"
-import Reservation from "./mainpage/Reservation.jsx"
-import BookingsManager from "./mainpage/BookingsManager.jsx"
+import { useContext, useState } from "react"
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom"
+import { Suspense } from "react"
 
-import { useContext, useState } from 'react'
-import { UserContext } from './auth/UserContext.jsx'
-import { NotificationProvider } from './auth/NotificationContext.jsx'
-import { normalizeRole, canAccessPage } from './auth/roles.js'
-import { SystemLoader } from './layout/Loading.jsx'
+import Login from "./auth/Login.jsx"
+import Register from "./auth/Register.jsx"
+import Sidebar from "./layout/Sidebar.jsx"
+import Navbar from "./layout/Navbar.jsx"
+import { UserContext } from "./auth/UserContext.jsx"
+import { NotificationProvider } from "./auth/NotificationContext.jsx"
+import { normalizeRole } from "./auth/roles.js"
+import { SystemLoader, PageSkeleton } from "./layout/Loading.jsx"
+import { ROUTES, defaultRouteForRole, routeByPath } from "./lib/routes.js"
+
+function ProtectedLayout() {
+    const { user, loading } = useContext(UserContext)
+    const location = useLocation()
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+
+    if (loading) return <SystemLoader />
+    if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+
+    const role = normalizeRole(user.role)
+    const route = routeByPath(location.pathname)
+    const title = route?.title || "Dashboard"
+    const allowed = route ? route.roles.includes(role) : true
+
+    return (
+        <NotificationProvider>
+            <div className="app-layout">
+                <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                <div
+                    className={`sidebar-overlay ${sidebarOpen ? "show" : ""}`}
+                    onClick={() => setSidebarOpen(false)}
+                />
+                <div className="main-container">
+                    <Navbar pageTitle={title} onMenuClick={() => setSidebarOpen(true)} />
+                    <div className="main-content">
+                        <div className="page-transition" key={location.pathname}>
+                            <Suspense fallback={<PageSkeleton label={`Loading ${title.toLowerCase()}`} rows={5} columns={6} />}>
+                                {allowed ? <Outlet /> : <Navigate to={defaultRouteForRole(role)} replace />}
+                            </Suspense>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </NotificationProvider>
+    )
+}
+
+function PublicOnly({ children }) {
+    const { user, loading } = useContext(UserContext)
+
+    if (loading) return <SystemLoader />
+    if (user) return <Navigate to={defaultRouteForRole(normalizeRole(user.role))} replace />
+    return children
+}
+
+function AppRoutes() {
+    const { user, loading } = useContext(UserContext)
+    const role = normalizeRole(user?.role)
+
+    if (loading) return <SystemLoader />
+
+    return (
+        <Routes>
+            <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+            <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+
+            <Route element={<ProtectedLayout />}>
+                <Route index element={<Navigate to={defaultRouteForRole(role)} replace />} />
+                {ROUTES.map(({ path, component: Component }) => (
+                    <Route key={path} path={path} element={<Component />} />
+                ))}
+            </Route>
+
+            <Route path="*" element={<Navigate to={user ? defaultRouteForRole(role) : "/login"} replace />} />
+        </Routes>
+    )
+}
 
 function App() {
-  const { user, loading } = useContext(UserContext)
-  const [page, setPage] = useState("Dashboard")
-  const [sessionUserId, setSessionUserId] = useState(null)
-  const [isRegistering, setIsRegistering] = useState(false)
-
-  const role = normalizeRole(user?.role)
-  const defaultPage = role === "student" ? "SemesterSchedule" : "Dashboard"
-
-  // Reset the landing page whenever a different account logs in.
-  if (user && user.id !== sessionUserId) {
-    setSessionUserId(user.id)
-    setPage(defaultPage)
-  }
-
-  if (!user && sessionUserId !== null) {
-    setSessionUserId(null)
-    setPage("Dashboard")
-  }
-
-  const pages = {
-      Dashboard: { component: Dashboard, name: "Dashboard" },
-      LabManagement: { component: LabManagement, name: "Lab Management" },
-      Announcements: { component: Announcements, name: "Announcements" },
-      Settings: { component: Settings, name: "Settings" },
-      ScheduleViewer: { component: ScheduleViewer, name: "Laboratory Schedule" },
-      SemesterSchedule: { component: SemesterSchedule, name: "Class Schedule" },
-      MasterSchedule: { component: MasterSchedule, name: "University Calendar" },
-      ScheduleManager: { component: ScheduleManager, name: "Manage Schedules" },
-      InviteCodes: { component: InviteCodes, name: "Registration Codes" },
-      AnalyticsReports: { component: AnalyticsReports, name: "Analytics Reports" },
-      Reservation: { component: Reservation, name: "Work Booking" },
-      BookingsManager: { component: BookingsManager, name: "Manage Bookings" }
-  }
-
-  const activePage = user && canAccessPage(role, page) ? page : defaultPage
-  const currentPageData = pages[activePage] || pages["Dashboard"]
-  const CurrentPage = currentPageData.component
-  const pageTitle = currentPageData.name
-
-  if (loading) {
-    return <SystemLoader />
-  }
-
-  if (!user) {
-    if (isRegistering) {
-        return <Register onSwitchToLogin={() => setIsRegistering(false)} />
-    }
-    return <Login onSwitchToRegister={() => setIsRegistering(true)} />
-  }
-
-  return (
-    <NotificationProvider>
-      <div className="app-layout">
-        <Sidebar page={activePage} setPage={setPage} role={role} />
-        <div className="main-container">
-          <Navbar pageTitle={pageTitle} />
-          <div className="main-content">
-            <CurrentPage/>
-          </div>
-        </div>
-      </div>
-    </NotificationProvider>
-  )
+    return (
+        <BrowserRouter>
+            <AppRoutes />
+        </BrowserRouter>
+    )
 }
 
 export default App

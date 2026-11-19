@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import './Login.css'
 import logo from '../assets/logo.png'
+import { Link } from 'react-router-dom'
 import { useState, useContext } from 'react'
 import { UserContext } from './UserContext.jsx'
 
@@ -11,13 +12,14 @@ const ROLE_OPTIONS = [
     { value: 'admin', label: 'Admin', needsCode: true }
 ]
 
-function Register({ onSwitchToLogin }) {
+function Register() {
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [role, setRole] = useState("student")
     const [inviteCode, setInviteCode] = useState("")
     const [error, setError] = useState("")
+    const [submitting, setSubmitting] = useState(false)
     const { setUser } = useContext(UserContext)
 
     const selectedRole = ROLE_OPTIONS.find(option => option.value === role)
@@ -25,9 +27,10 @@ function Register({ onSwitchToLogin }) {
     const handleSubmit = async (event) => {
         event.preventDefault()
         setError("")
+        setSubmitting(true)
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+            const response = await fetch(`/api/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -49,6 +52,8 @@ function Register({ onSwitchToLogin }) {
             }
         } catch (err) {
             setError("Network error. Please try again.")
+        } finally {
+            setSubmitting(false)
         }
     }
 
@@ -131,11 +136,13 @@ function Register({ onSwitchToLogin }) {
                         </div>
                     )}
 
-                    <button className="submit" type="submit" style={{ marginTop: '20px' }}> Register </button>
+                    <button className="submit" type="submit" style={{ marginTop: '20px' }} disabled={submitting}>
+                        {submitting ? "Creating account..." : "Register"}
+                    </button>
 
                     <div className="support-prompt">
                         <p>Already have an account?</p> 
-                        <a href="#" onClick={(e) => { e.preventDefault(); onSwitchToLogin(); }}>Log In</a>
+                        <Link to="/login">Log In</Link>
                     </div>
                 </form>
             </div>

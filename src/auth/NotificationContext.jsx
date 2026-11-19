@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useContext } from 'react'
 import { UserContext } from './UserContext.jsx'
@@ -12,7 +13,7 @@ export function NotificationProvider({ children }) {
     const fetchNotifications = async () => {
         if (!user) return
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/notifications`, { credentials: "include" })
+            const res = await fetch(`/api/notifications`, { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setNotifications(data.notifications)
@@ -23,15 +24,17 @@ export function NotificationProvider({ children }) {
     }
 
     useEffect(() => {
+        if (!user) return
+
         fetchNotifications()
         // Poll every 30 seconds for new notifications
         const interval = setInterval(fetchNotifications, 30000)
         return () => clearInterval(interval)
-    }, [user])
+    }, [user?.id])
 
     const markAsRead = async () => {
         try {
-            await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/read`, { method: "PUT", credentials: "include" })
+            await fetch(`/api/notifications/read`, { method: "PUT", credentials: "include" })
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
         } catch (err) {
             console.error("Failed to mark notifications as read", err)

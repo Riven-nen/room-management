@@ -4,7 +4,7 @@ import { KeyRound, Plus, Copy, Check, ShieldCheck, Ban } from "lucide-react"
 import { TableSkeleton } from "../layout/Loading.jsx"
 import "./Schedules.css"
 
-const API = import.meta.env.VITE_API_URL
+const API = ""
 
 const CODE_ROLES = [
     { value: "faculty", label: "Faculty" },

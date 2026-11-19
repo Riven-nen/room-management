@@ -3,22 +3,14 @@ import logo from "../assets/logo.png"
 
 const repeat = (count) => Array.from({ length: count })
 
-export function SystemLoader({ label = "Preparing your workspace" }) {
+export function SystemLoader({ label = "Loading system..." }) {
     return (
         <div className="system-loader" role="status" aria-live="polite">
-            <div className="system-loader-orb orb-a" />
-            <div className="system-loader-orb orb-b" />
             <div className="system-loader-card">
-                <div className="system-loader-logo">
-                    <span className="system-loader-ring" />
-                    <img src={logo} alt="" />
-                </div>
-                <p className="system-loader-eyebrow">La Consolacion University Philippines</p>
+                <img src={logo} alt="" />
                 <h1>LCUP Laboratory</h1>
-                <p className="system-loader-subtitle">{label}</p>
+                <p>{label}</p>
                 <div className="system-loader-progress"><span /></div>
-                <div className="system-loader-dots"><i /><i /><i /></div>
-                <span className="sr-only">Loading system</span>
             </div>
         </div>
     )

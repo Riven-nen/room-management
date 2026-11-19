@@ -18,12 +18,15 @@ function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/all`, { credentials: "include" })
+            const [res, analyticsRes] = await Promise.all([
+                fetch(`/api/reservation/all`, { credentials: "include" }),
+                fetch(`/api/reservation/analytics`, { credentials: "include" })
+            ])
+
             if (res.ok) {
                 const d = await res.json()
                 setReservations(d.reservations)
             }
-            const analyticsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/analytics`, { credentials: "include" })
             if (analyticsRes.ok) {
                 const a = await analyticsRes.json()
                 setAnalytics(a)
@@ -41,7 +44,7 @@ function Dashboard() {
 
     const handleApprove = async (id) => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/update-status`, {
+            const res = await fetch(`/api/reservation/update-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -55,7 +58,7 @@ function Dashboard() {
 
     const handleReject = async (id) => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/update-status`, {
+            const res = await fetch(`/api/reservation/update-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -98,6 +101,25 @@ function Dashboard() {
     const approvedCount = reservations.filter(r => r.status === "approved").length
     const totalPendingCount = reservations.filter(r => r.status === "pending").length
 
+    const exportBookings = () => {
+        const rows = [
+            ["Room", "User", "Start", "End", "Status", "Purpose", "Participants"],
+            ...reservations.map((item) => [
+                item.room, item.user, item.start, item.end, item.status, item.purpose, item.participants
+            ])
+        ]
+        const csv = rows
+            .map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
+            .join("\n")
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+        const url = URL.createObjectURL(blob)
+        const anchor = document.createElement("a")
+        anchor.href = url
+        anchor.download = "bookings-report.csv"
+        anchor.click()
+        URL.revokeObjectURL(url)
+    }
+
     if (loading) {
         return <PageSkeleton label="Loading dashboard" stats={4} chart rows={4} columns={5} />
     }
@@ -111,7 +133,7 @@ function Dashboard() {
                 </div>
                 <div className="dashboard-title-right">
                     <button className="dashboard-title-date"> <Calendar size={16}/> {new Date().toLocaleDateString()} </button>
-                    <button className="dashboard-title-export"> <Download size={16}/> Export Report</button>
+                    <button className="dashboard-title-export" onClick={exportBookings}> <Download size={16}/> Export Report</button>
                 </div>
             </div>
             

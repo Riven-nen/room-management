@@ -1,5 +1,6 @@
 import './Sidebar.css'
 import logo from '../assets/logo.png'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
     LayoutDashboardIcon,
     LogOut,
@@ -12,122 +13,77 @@ import {
     CalendarDays,
     CalendarRange,
     ShieldCheck,
-    KeyRound
+    KeyRound,
+    Users,
+    X
 } from 'lucide-react'
 import { UserContext } from '../auth/UserContext.jsx'
 import { useContext } from 'react'
-import { normalizeRole } from '../auth/roles.js'
+import { normalizeRole, PAGE_ACCESS } from '../auth/roles.js'
 
-function Sidebar({ page, setPage, role }) {
-    const {setUser} = useContext(UserContext)
+function Sidebar({ isOpen = false, onClose }) {
+    const { user, setUser } = useContext(UserContext)
+    const navigate = useNavigate()
+    const role = normalizeRole(user?.role)
+
+    const canSee = (roles) => (roles || []).includes(role)
+
+    const items = [
+        { to: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon, roles: PAGE_ACCESS.dashboard },
+        { to: "/class-schedule", label: "Class Schedule", icon: CalendarDays, roles: PAGE_ACCESS.classSchedule },
+        { to: "/university-calendar", label: "University Calendar", icon: CalendarRange, roles: PAGE_ACCESS.universityCalendar },
+        { to: "/lab-schedule", label: "Lab Schedule", icon: Calendar, roles: PAGE_ACCESS.labSchedule },
+        { to: "/bookings", label: "Work Booking", icon: BookIcon, roles: PAGE_ACCESS.bookings },
+        { to: "/manage-bookings", label: "Manage Bookings", icon: ClipboardList, roles: PAGE_ACCESS.manageBookings },
+        { to: "/admin/schedules", label: "Manage Schedules", icon: ShieldCheck, roles: PAGE_ACCESS.scheduleManager },
+        { to: "/admin/registration-codes", label: "Registration Codes", icon: KeyRound, roles: PAGE_ACCESS.inviteCodes },
+        { to: "/admin/users", label: "User Management", icon: Users, roles: PAGE_ACCESS.userManagement },
+        { to: "/admin/labs", label: "Lab Management", icon: RobotArm, roles: PAGE_ACCESS.labManagement },
+        { to: "/admin/analytics", label: "Analytics Reports", icon: ChartBar, roles: PAGE_ACCESS.analytics },
+        { to: "/settings", label: "Settings", icon: Settings, roles: PAGE_ACCESS.settings }
+    ]
 
     const handleLogout = async (event) => {
         event.preventDefault()
-        await fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, { method: "POST", credentials: "include" })
+        await fetch('/api/auth/logout', { method: "POST", credentials: "include" })
         setUser(null)
+        navigate("/login", { replace: true })
     }
 
-    const userRole = normalizeRole(role)
-    const isAdmin = userRole === "admin"
-    const isStudent = userRole === "student"
-    const canBookLabs = userRole === "admin" || userRole === "faculty"
-
     return (
-        <div className="sidebar-container">
+        <div className={`sidebar-container ${isOpen ? "sidebar-open" : ""}`}>
             <div className="sidebar-title">
                 <img src={logo} alt="Logo" />
                 <h3>LCUP <br /> Laboratory</h3>
+                <button className="sidebar-close" type="button" onClick={onClose} aria-label="Close navigation">
+                    <X size={18} />
+                </button>
             </div>
 
             <div className="sidebar-items">
                 <ul>
-                    {!isStudent && (
-                        <li>
-                            <button onClick={() => setPage("Dashboard")} className={page === "Dashboard" ? "active" : ""}>
-                                <LayoutDashboardIcon /> Dashboard
-                            </button>
-                        </li>
-                    )}
-
-                    <li>
-                        <button onClick={() => setPage("SemesterSchedule")} className={page === "SemesterSchedule" ? "active" : ""}>
-                            <CalendarDays /> Class Schedule
-                        </button>
-                    </li>
-
-                    <li>
-                        <button onClick={() => setPage("MasterSchedule")} className={page === "MasterSchedule" ? "active" : ""}>
-                            <CalendarRange /> University Calendar
-                        </button>
-                    </li>
-
-                    <li>
-                        <button onClick={() => setPage("ScheduleViewer")} className={page === "ScheduleViewer" ? "active" : ""}>
-                            <Calendar /> Lab Schedule
-                        </button>
-                    </li>
-
-                    {canBookLabs && (
-                        <li>
-                            <button onClick={() => setPage("Reservation")} className={page === "Reservation" ? "active" : ""}>
-                                <BookIcon /> Work Booking
-                            </button>
-                        </li>
-                    )}
-
-                    {canBookLabs && (
-                        <li>
-                            <button onClick={() => setPage("BookingsManager")} className={page === "BookingsManager" ? "active" : ""}>
-                                <ClipboardList /> {isAdmin ? "All Bookings" : "Coordinator Hub"}
-                            </button>
-                        </li>
-                    )}
-
-                    {isAdmin && (
-                        <li>
-                            <button onClick={() => setPage("ScheduleManager")} className={page === "ScheduleManager" ? "active" : ""}>
-                                <ShieldCheck /> Manage Schedules
-                            </button>
-                        </li>
-                    )}
-
-                    {isAdmin && (
-                        <li>
-                            <button onClick={() => setPage("InviteCodes")} className={page === "InviteCodes" ? "active" : ""}>
-                                <KeyRound /> Registration Codes
-                            </button>
-                        </li>
-                    )}
-
-                    {isAdmin && (
-                        <li>
-                            <button onClick={() => setPage("LabManagement")} className={page === "LabManagement" ? "active" : ""}>
-                                <RobotArm /> Lab Management
-                            </button>
-                        </li>
-                    )}
-
-                    {isAdmin && (
-                        <li>
-                            <button onClick={() => setPage("AnalyticsReports")} className={page === "AnalyticsReports" ? "active" : ""}>
-                                <ChartBar /> Analytics Reports
-                            </button>
-                        </li>
-                    )}
-
-                    <li>
-                        <button onClick={() => setPage("Settings")} className={page === "Settings" ? "active" : ""}>
-                            <Settings /> Settings
-                        </button>
-                    </li>
+                    {items.filter((item) => canSee(item.roles)).map((item) => {
+                        const Icon = item.icon
+                        return (
+                            <li key={item.to}>
+                                <NavLink
+                                    to={item.to}
+                                    onClick={onClose}
+                                    className={({ isActive }) => (isActive ? "active" : "")}
+                                >
+                                    <Icon /> {item.label}
+                                </NavLink>
+                            </li>
+                        )
+                    })}
                 </ul>
             </div>
 
             <div className="sidebar-bottom">
-                {canBookLabs && (
-                    <button className="new-booking" onClick={() => setPage("Reservation")}>
+                {canSee(PAGE_ACCESS.bookings) && (
+                    <NavLink className="new-booking" to="/bookings" onClick={onClose}>
                         + New Work Booking
-                    </button>
+                    </NavLink>
                 )}
                 
                 <button className="logout" onClick={handleLogout}>

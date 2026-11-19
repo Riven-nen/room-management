@@ -622,6 +622,16 @@
     color: #64748b;
 }
 
+.inline-select {
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 13px;
+}
+
 .master-grid {
     display: grid;
     grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr);
@@ -632,6 +642,44 @@
 @media (max-width: 1100px) {
     .master-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    .sidebar-container,
+    .navbar-container,
+    .sidebar-overlay,
+    .schedule-hero,
+    .schedule-toolbar,
+    .tab-bar,
+    .row-actions,
+    button {
+        display: none !important;
+    }
+
+    .main-container {
+        padding-top: 0;
+    }
+
+    .main-content {
+        padding: 0;
+    }
+
+    body {
+        background: #ffffff;
+    }
+
+    .schedule-card {
+        border: none;
+        box-shadow: none;
+    }
+
+    .schedule-table {
+        min-width: 0;
+    }
+
+    .schedule-table th {
+        background: #ffffff;
     }
 }
 

@@ -1,10 +1,10 @@
-/* eslint-disable no-undef */
 const express = require("express")
 const db = require("../db.js")
-const { requireAuth, requireRole } = require("../middleware/auth.js")
-const router = express.Router()
+const { requireAuth, requireCapability } = require("../middleware/auth.js")
 
-const adminOnly = requireRole("admin")
+const router = express.Router()
+const scheduleWrite = requireCapability("scheduleWrite")
+
 const isTime = (value) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value)
 const isDate = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
 const clean = (value) => (value === undefined || value === null ? null : String(value).trim() || null)
@@ -17,6 +17,7 @@ function validateSchedule(body) {
     if (!clean(body.year_level)) errors.push("Year level is required")
     if (!clean(body.section)) errors.push("Section is required")
     if (!clean(body.subject)) errors.push("Subject is required")
+    if (!body.room_id && !clean(body.room)) errors.push("Room is required")
 
     const day = Number(body.day_of_week)
     if (!Number.isInteger(day) || day < 1 || day > 7) errors.push("Day of week must be between 1 (Monday) and 7 (Sunday)")
@@ -25,6 +26,23 @@ function validateSchedule(body) {
     if (!isTime(body.end_time)) errors.push("End time must be in HH:MM format")
     if (isTime(body.start_time) && isTime(body.end_time) && body.end_time <= body.start_time) {
         errors.push("End time must be after start time")
+    }
+
+    return errors
+}
+
+function validateSemester(body) {
+    const errors = []
+    const startsOn = clean(body.starts_on)
+    const endsOn = clean(body.ends_on)
+
+    if (!clean(body.school_year)) errors.push("School year is required")
+    if (!["1st Semester", "2nd Semester", "Summer"].includes(clean(body.term))) errors.push("Invalid term")
+
+    if (startsOn && !isDate(startsOn)) errors.push("Start date must be YYYY-MM-DD")
+    if (endsOn && !isDate(endsOn)) errors.push("End date must be YYYY-MM-DD")
+    if (isDate(startsOn) && isDate(endsOn) && endsOn < startsOn) {
+        errors.push("End date cannot be before the start date")
     }
 
     return errors
@@ -55,13 +73,39 @@ function validateMasterEvent(body) {
     return errors
 }
 
+async function resolveRoom(roomId, fallbackLabel, client = db) {
+    if (!roomId) return { roomId: null, roomName: clean(fallbackLabel) }
+
+    const { rows } = await client.query("SELECT id, name FROM rooms WHERE id = $1", [roomId])
+    if (rows.length === 0) return null
+    return { roomId: rows[0].id, roomName: rows[0].name }
+}
+
+async function findScheduleConflict({ semesterId, roomId, dayOfWeek, startTime, endTime, excludeId }, client = db) {
+    if (!roomId) return null
+
+    const { rows } = await client.query(`
+        SELECT id, subject
+        FROM semester_schedules
+        WHERE semester_id = $1
+          AND room_id = $2
+          AND day_of_week = $3
+          AND start_time < $5::time
+          AND end_time > $4::time
+          AND ($6::bigint IS NULL OR id <> $6)
+        LIMIT 1
+    `, [semesterId, roomId, dayOfWeek, startTime, endTime, excludeId || null])
+
+    return rows[0] || null
+}
+
 // ---------------------------------------------------------------------------
 // Semesters
 // ---------------------------------------------------------------------------
 router.get("/semesters", requireAuth, async (req, res) => {
     try {
         const { rows } = await db.query(
-            `SELECT id, school_year, term, is_active, created_at
+            `SELECT id, school_year, term, starts_on, ends_on, is_active, created_at
              FROM semesters
              ORDER BY is_active DESC, school_year DESC, term ASC`
         )
@@ -72,19 +116,15 @@ router.get("/semesters", requireAuth, async (req, res) => {
     }
 })
 
-router.post("/semesters", requireAuth, adminOnly, async (req, res) => {
+router.post("/semesters", requireAuth, scheduleWrite, async (req, res) => {
+    const errors = validateSemester(req.body)
+    if (errors.length > 0) return res.status(400).json({ message: errors[0], errors })
+
     const schoolYear = clean(req.body.school_year)
     const term = clean(req.body.term)
     const isActive = Boolean(req.body.is_active)
-
-    if (!schoolYear || !term) {
-        return res.status(400).json({ message: "School year and term are required" })
-    }
-
-    if (!["1st Semester", "2nd Semester", "Summer"].includes(term)) {
-        return res.status(400).json({ message: "Invalid term" })
-    }
-
+    const startsOn = clean(req.body.starts_on)
+    const endsOn = clean(req.body.ends_on)
     const client = await db.connect()
 
     try {
@@ -95,10 +135,10 @@ router.post("/semesters", requireAuth, adminOnly, async (req, res) => {
         }
 
         const { rows } = await client.query(
-            `INSERT INTO semesters (school_year, term, is_active, created_by)
-             VALUES ($1, $2, $3, $4)
-             RETURNING id, school_year, term, is_active, created_at`,
-            [schoolYear, term, isActive, req.user.id]
+            `INSERT INTO semesters (school_year, term, starts_on, ends_on, is_active, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, school_year, term, starts_on, ends_on, is_active, created_at`,
+            [schoolYear, term, startsOn, endsOn, isActive, req.user.id]
         )
 
         await client.query("COMMIT")
@@ -106,28 +146,22 @@ router.post("/semesters", requireAuth, adminOnly, async (req, res) => {
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
         console.error(error)
-        if (error.code === "23505") {
-            return res.status(409).json({ message: "That semester already exists" })
-        }
+        if (error.code === "23505") return res.status(409).json({ message: "That semester already exists" })
         res.status(500).json({ message: "Failed to create semester" })
     } finally {
         client.release()
     }
 })
 
-router.put("/semesters/:id", requireAuth, adminOnly, async (req, res) => {
+router.put("/semesters/:id", requireAuth, scheduleWrite, async (req, res) => {
+    const errors = validateSemester(req.body)
+    if (errors.length > 0) return res.status(400).json({ message: errors[0], errors })
+
     const schoolYear = clean(req.body.school_year)
     const term = clean(req.body.term)
     const isActive = Boolean(req.body.is_active)
-
-    if (!schoolYear || !term) {
-        return res.status(400).json({ message: "School year and term are required" })
-    }
-
-    if (!["1st Semester", "2nd Semester", "Summer"].includes(term)) {
-        return res.status(400).json({ message: "Invalid term" })
-    }
-
+    const startsOn = clean(req.body.starts_on)
+    const endsOn = clean(req.body.ends_on)
     const client = await db.connect()
 
     try {
@@ -139,10 +173,10 @@ router.put("/semesters/:id", requireAuth, adminOnly, async (req, res) => {
 
         const { rows } = await client.query(
             `UPDATE semesters
-             SET school_year = $1, term = $2, is_active = $3, updated_at = now()
-             WHERE id = $4
-             RETURNING id, school_year, term, is_active, created_at`,
-            [schoolYear, term, isActive, req.params.id]
+             SET school_year = $1, term = $2, starts_on = $3, ends_on = $4, is_active = $5, updated_at = now()
+             WHERE id = $6
+             RETURNING id, school_year, term, starts_on, ends_on, is_active, created_at`,
+            [schoolYear, term, startsOn, endsOn, isActive, req.params.id]
         )
 
         if (rows.length === 0) {
@@ -155,16 +189,14 @@ router.put("/semesters/:id", requireAuth, adminOnly, async (req, res) => {
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
         console.error(error)
-        if (error.code === "23505") {
-            return res.status(409).json({ message: "That semester already exists" })
-        }
+        if (error.code === "23505") return res.status(409).json({ message: "That semester already exists" })
         res.status(500).json({ message: "Failed to update semester" })
     } finally {
         client.release()
     }
 })
 
-router.delete("/semesters/:id", requireAuth, adminOnly, async (req, res) => {
+router.delete("/semesters/:id", requireAuth, scheduleWrite, async (req, res) => {
     try {
         const { rowCount } = await db.query("DELETE FROM semesters WHERE id = $1", [req.params.id])
         if (rowCount === 0) return res.status(404).json({ message: "Semester not found" })
@@ -223,9 +255,11 @@ router.get("/semester-schedules", requireAuth, async (req, res) => {
         const { rows } = await db.query(
             `SELECT semester_schedules.*,
                     semesters.school_year,
-                    semesters.term
+                    semesters.term,
+                    rooms.name AS room_name
              FROM semester_schedules
              JOIN semesters ON semesters.id = semester_schedules.semester_id
+             LEFT JOIN rooms ON rooms.id = semester_schedules.room_id
              ${where}
              ORDER BY semester_schedules.day_of_week ASC,
                       semester_schedules.start_time ASC,
@@ -239,6 +273,21 @@ router.get("/semester-schedules", requireAuth, async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "Failed to load the semester schedule" })
+    }
+})
+
+router.get("/instructors", requireAuth, scheduleWrite, async (req, res) => {
+    try {
+        const { rows } = await db.query(
+            `SELECT id, name
+             FROM users
+             WHERE role = 'faculty' AND is_active = true
+             ORDER BY name ASC`
+        )
+        res.json({ instructors: rows })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to load instructors" })
     }
 })
 
@@ -266,16 +315,32 @@ router.get("/filters", requireAuth, async (req, res) => {
     }
 })
 
-router.post("/semester-schedules", requireAuth, adminOnly, async (req, res) => {
+router.post("/semester-schedules", requireAuth, scheduleWrite, async (req, res) => {
     const errors = validateSchedule(req.body)
     if (errors.length > 0) return res.status(400).json({ message: errors[0], errors })
 
     try {
+        const room = await resolveRoom(req.body.room_id, req.body.room)
+        if (!room) return res.status(400).json({ message: "Room not found" })
+
+        const day = Number(req.body.day_of_week)
+        const conflict = await findScheduleConflict({
+            semesterId: req.body.semester_id,
+            roomId: room.roomId,
+            dayOfWeek: day,
+            startTime: req.body.start_time,
+            endTime: req.body.end_time
+        })
+
+        if (conflict) {
+            return res.status(409).json({ message: `That room already has ${conflict.subject} at this time` })
+        }
+
         const { rows } = await db.query(
             `INSERT INTO semester_schedules
                 (semester_id, course, year_level, section, subject_code, subject,
-                 instructor, day_of_week, start_time, end_time, room, created_by)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                 instructor, day_of_week, start_time, end_time, room, room_id, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
              RETURNING *`,
             [
                 req.body.semester_id,
@@ -285,10 +350,11 @@ router.post("/semester-schedules", requireAuth, adminOnly, async (req, res) => {
                 clean(req.body.subject_code),
                 clean(req.body.subject),
                 clean(req.body.instructor),
-                Number(req.body.day_of_week),
+                day,
                 req.body.start_time,
                 req.body.end_time,
-                clean(req.body.room),
+                room.roomName,
+                room.roomId,
                 req.user.id
             ]
         )
@@ -296,22 +362,120 @@ router.post("/semester-schedules", requireAuth, adminOnly, async (req, res) => {
         res.status(201).json({ schedule: rows[0] })
     } catch (error) {
         console.error(error)
-        if (error.code === "23503") return res.status(400).json({ message: "Semester not found" })
+        if (error.code === "23503") return res.status(400).json({ message: "Semester or room not found" })
         res.status(500).json({ message: "Failed to save the schedule entry" })
     }
 })
 
-router.put("/semester-schedules/:id", requireAuth, adminOnly, async (req, res) => {
+router.post("/semester-schedules/import", requireAuth, scheduleWrite, async (req, res) => {
+    const semesterId = req.body.semester_id
+    const entries = Array.isArray(req.body.entries) ? req.body.entries : []
+
+    if (!semesterId) return res.status(400).json({ message: "Semester is required" })
+    if (entries.length === 0) return res.status(400).json({ message: "No entries to import" })
+    if (entries.length > 1000) return res.status(400).json({ message: "Import up to 1000 entries at a time" })
+
+    const client = await db.connect()
+
+    try {
+        await client.query("BEGIN")
+
+        const semester = await client.query("SELECT id FROM semesters WHERE id = $1", [semesterId])
+        if (semester.rows.length === 0) {
+            await client.query("ROLLBACK")
+            return res.status(404).json({ message: "Semester not found" })
+        }
+
+        for (const [index, entry] of entries.entries()) {
+            const payload = { ...entry, semester_id: semesterId }
+            const errors = validateSchedule(payload)
+
+            if (errors.length > 0) {
+                await client.query("ROLLBACK")
+                return res.status(400).json({ message: `Row ${index + 1}: ${errors[0]}` })
+            }
+
+            const room = await resolveRoom(payload.room_id, payload.room, client)
+            if (!room) {
+                await client.query("ROLLBACK")
+                return res.status(400).json({ message: `Row ${index + 1}: room not found` })
+            }
+
+            const conflict = await findScheduleConflict({
+                semesterId,
+                roomId: room.roomId,
+                dayOfWeek: Number(payload.day_of_week),
+                startTime: payload.start_time,
+                endTime: payload.end_time
+            }, client)
+
+            if (conflict) {
+                await client.query("ROLLBACK")
+                return res.status(409).json({ message: `Row ${index + 1}: conflicts with ${conflict.subject}` })
+            }
+
+            await client.query(
+                `INSERT INTO semester_schedules
+                    (semester_id, course, year_level, section, subject_code, subject,
+                     instructor, day_of_week, start_time, end_time, room, room_id, created_by)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+                [
+                    semesterId,
+                    clean(payload.course),
+                    clean(payload.year_level),
+                    clean(payload.section),
+                    clean(payload.subject_code),
+                    clean(payload.subject),
+                    clean(payload.instructor),
+                    Number(payload.day_of_week),
+                    payload.start_time,
+                    payload.end_time,
+                    room.roomName,
+                    room.roomId,
+                    req.user.id
+                ]
+            )
+        }
+
+        await client.query("COMMIT")
+        res.status(201).json({ message: `Imported ${entries.length} schedule entries`, imported: entries.length })
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {})
+        console.error(error)
+        res.status(500).json({ message: "Failed to import the schedule" })
+    } finally {
+        client.release()
+    }
+})
+
+router.put("/semester-schedules/:id", requireAuth, scheduleWrite, async (req, res) => {
     const errors = validateSchedule(req.body)
     if (errors.length > 0) return res.status(400).json({ message: errors[0], errors })
 
     try {
+        const room = await resolveRoom(req.body.room_id, req.body.room)
+        if (!room) return res.status(400).json({ message: "Room not found" })
+
+        const day = Number(req.body.day_of_week)
+        const conflict = await findScheduleConflict({
+            semesterId: req.body.semester_id,
+            roomId: room.roomId,
+            dayOfWeek: day,
+            startTime: req.body.start_time,
+            endTime: req.body.end_time,
+            excludeId: req.params.id
+        })
+
+        if (conflict) {
+            return res.status(409).json({ message: `That room already has ${conflict.subject} at this time` })
+        }
+
         const { rows } = await db.query(
             `UPDATE semester_schedules
              SET semester_id = $1, course = $2, year_level = $3, section = $4,
                  subject_code = $5, subject = $6, instructor = $7, day_of_week = $8,
-                 start_time = $9, end_time = $10, room = $11, updated_at = now()
-             WHERE id = $12
+                 start_time = $9, end_time = $10, room = $11, room_id = $12, updated_at = now()
+             WHERE id = $13
              RETURNING *`,
             [
                 req.body.semester_id,
@@ -321,10 +485,11 @@ router.put("/semester-schedules/:id", requireAuth, adminOnly, async (req, res) =
                 clean(req.body.subject_code),
                 clean(req.body.subject),
                 clean(req.body.instructor),
-                Number(req.body.day_of_week),
+                day,
                 req.body.start_time,
                 req.body.end_time,
-                clean(req.body.room),
+                room.roomName,
+                room.roomId,
                 req.params.id
             ]
         )
@@ -333,12 +498,12 @@ router.put("/semester-schedules/:id", requireAuth, adminOnly, async (req, res) =
         res.json({ schedule: rows[0] })
     } catch (error) {
         console.error(error)
-        if (error.code === "23503") return res.status(400).json({ message: "Semester not found" })
+        if (error.code === "23503") return res.status(400).json({ message: "Semester or room not found" })
         res.status(500).json({ message: "Failed to update the schedule entry" })
     }
 })
 
-router.delete("/semester-schedules/:id", requireAuth, adminOnly, async (req, res) => {
+router.delete("/semester-schedules/:id", requireAuth, scheduleWrite, async (req, res) => {
     try {
         const { rowCount } = await db.query("DELETE FROM semester_schedules WHERE id = $1", [req.params.id])
         if (rowCount === 0) return res.status(404).json({ message: "Schedule entry not found" })
@@ -386,7 +551,7 @@ router.get("/master-events", requireAuth, async (req, res) => {
     }
 })
 
-router.post("/master-events", requireAuth, adminOnly, async (req, res) => {
+router.post("/master-events", requireAuth, scheduleWrite, async (req, res) => {
     const errors = validateMasterEvent(req.body)
     if (errors.length > 0) return res.status(400).json({ message: errors[0], errors })
 
@@ -420,7 +585,7 @@ router.post("/master-events", requireAuth, adminOnly, async (req, res) => {
     }
 })
 
-router.put("/master-events/:id", requireAuth, adminOnly, async (req, res) => {
+router.put("/master-events/:id", requireAuth, scheduleWrite, async (req, res) => {
     const errors = validateMasterEvent(req.body)
     if (errors.length > 0) return res.status(400).json({ message: errors[0], errors })
 
@@ -456,7 +621,7 @@ router.put("/master-events/:id", requireAuth, adminOnly, async (req, res) => {
     }
 })
 
-router.delete("/master-events/:id", requireAuth, adminOnly, async (req, res) => {
+router.delete("/master-events/:id", requireAuth, scheduleWrite, async (req, res) => {
     try {
         const { rowCount } = await db.query("DELETE FROM master_schedule_events WHERE id = $1", [req.params.id])
         if (rowCount === 0) return res.status(404).json({ message: "Calendar event not found" })

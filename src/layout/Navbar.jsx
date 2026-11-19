@@ -1,13 +1,16 @@
 import './Navbar.css'
-import { BellIcon, CircleQuestionMark, CircleUserRound, ChevronDown, X } from 'lucide-react'
+import { BellIcon, CircleQuestionMark, CircleUserRound, ChevronDown, X, Menu, Settings } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { UserContext } from '../auth/UserContext'
 import { NotificationContext } from '../auth/NotificationContext'
+import { normalizeRole, ROLE_LABELS } from '../auth/roles'
 import { useContext, useState, useEffect, useRef } from 'react'
 
-function Navbar({ pageTitle }) {
+function Navbar({ pageTitle, onMenuClick }) {
     const { user } = useContext(UserContext)
     const { notifications, unreadCount, markAsRead } = useContext(NotificationContext)
-    
+    const navigate = useNavigate()
+
     const [showNotifDropdown, setShowNotifDropdown] = useState(false)
     const [showProfileDropdown, setShowProfileDropdown] = useState(false)
     const [showHelpModal, setShowHelpModal] = useState(false)
@@ -36,17 +39,21 @@ function Navbar({ pageTitle }) {
         }
     }
 
+    const roleLabel = ROLE_LABELS[normalizeRole(user?.role)] || "User"
+
     return (
         <>
             <div className="navbar-container">
                 <div className="navbar-left">
+                    <button className="nav-menu-btn" type="button" onClick={onMenuClick} aria-label="Open navigation">
+                        <Menu size={22} />
+                    </button>
                     <h1>{pageTitle}</h1>
                 </div>
 
                 <div className="navbar-right">
-                    
                     <div style={{ position: 'relative' }} ref={notifRef}>
-                        <button className="nav-icon-btn" onClick={handleOpenNotifs}>
+                        <button className="nav-icon-btn" onClick={handleOpenNotifs} aria-label="Notifications">
                             <BellIcon size={22} />
                             {unreadCount > 0 && <span className="notif-dot">{unreadCount}</span>}
                         </button>
@@ -70,7 +77,7 @@ function Navbar({ pageTitle }) {
                         )}
                     </div>
 
-                    <button className="nav-icon-btn" onClick={() => setShowHelpModal(true)}>
+                    <button className="nav-icon-btn" onClick={() => setShowHelpModal(true)} aria-label="Help">
                         <CircleQuestionMark size={22} />
                     </button>
 
@@ -81,7 +88,7 @@ function Navbar({ pageTitle }) {
                             <CircleUserRound size={32} color="#00195c" />
                             <div className="profile-text">
                                 <span className="profile-name">{user.name || "User"}</span>
-                                <span className="profile-role">{user.role.toUpperCase()}</span>
+                                <span className="profile-role">{roleLabel.toUpperCase()}</span>
                             </div>
                             <ChevronDown size={16} color="#64748b" />
                         </div>
@@ -92,9 +99,19 @@ function Navbar({ pageTitle }) {
                                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#00195c' }}>{user.name}</span>
                                     <span style={{ fontSize: '12px', color: '#64748b' }}>{user.email}</span>
                                     <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', textTransform: 'uppercase', fontWeight: 'bold' }}>
-                                        Role: {user.role}
+                                        Role: {roleLabel}
                                     </span>
                                 </div>
+                                <div className="menu-divider"></div>
+                                <button
+                                    onClick={(event) => {
+                                        event.stopPropagation()
+                                        setShowProfileDropdown(false)
+                                        navigate("/settings")
+                                    }}
+                                >
+                                    <Settings size={16} /> Settings
+                                </button>
                             </div>
                         )}
                     </div>
@@ -106,7 +123,9 @@ function Navbar({ pageTitle }) {
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '400px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <h2 style={{ margin: 0, color: '#00195c' }}>Need Help?</h2>
-                            <button onClick={() => setShowHelpModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                            <button onClick={() => setShowHelpModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Close help">
+                                <X size={20} />
+                            </button>
                         </div>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', color: '#334155' }}>

@@ -1,9 +1,16 @@
-/* eslint-disable no-undef */
-require("dotenv").config()
+const { databaseUrl } = require("./config/env")
+
 const { Pool } = require("pg")
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    connectionString: databaseUrl,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+})
+
+pool.on("error", (error) => {
+    console.error("Unexpected PostgreSQL pool error", error)
 })
 
 // Return date/timestamp columns as raw strings, not JS Date objects

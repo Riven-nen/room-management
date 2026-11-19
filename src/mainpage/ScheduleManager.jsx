@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import Modal from "../layout/Modal.jsx"
-import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck } from "lucide-react"
+import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck, Upload } from "lucide-react"
+import { UserContext } from "../auth/UserContext.jsx"
 import { PageSkeleton } from "../layout/Loading.jsx"
 import "./Schedules.css"
 
-const API = import.meta.env.VITE_API_URL
+const API = ""
 
 const DAYS = [
     { value: 1, label: "Monday" },
@@ -28,7 +29,7 @@ const EVENT_TYPES = {
     other: "Other"
 }
 
-const emptySemester = { school_year: "", term: "1st Semester", is_active: false }
+const emptySemester = { school_year: "", term: "1st Semester", starts_on: "", ends_on: "", is_active: false }
 const emptySchedule = {
     semester_id: "",
     course: "",
@@ -40,7 +41,8 @@ const emptySchedule = {
     day_of_week: 1,
     start_time: "08:00",
     end_time: "09:00",
-    room: ""
+    room: "",
+    room_id: ""
 }
 const emptyEvent = {
     title: "",
@@ -57,11 +59,110 @@ const emptyEvent = {
 const dayLabel = (value) => DAYS.find(day => Number(day.value) === Number(value))?.label || ""
 const shortTime = (value) => String(value || "").slice(0, 5)
 
+const DAY_ALIASES = {
+    monday: 1, mon: 1,
+    tuesday: 2, tue: 2, tues: 2,
+    wednesday: 3, wed: 3,
+    thursday: 4, thu: 4, thur: 4, thurs: 4,
+    friday: 5, fri: 5,
+    saturday: 6, sat: 6,
+    sunday: 7, sun: 7
+}
+
+const CSV_HEADERS = {
+    course: "course",
+    "year level": "year_level",
+    year_level: "year_level",
+    year: "year_level",
+    section: "section",
+    "subject code": "subject_code",
+    subject_code: "subject_code",
+    subject: "subject",
+    instructor: "instructor",
+    day: "day_of_week",
+    "day of week": "day_of_week",
+    day_of_week: "day_of_week",
+    start: "start_time",
+    "start time": "start_time",
+    start_time: "start_time",
+    end: "end_time",
+    "end time": "end_time",
+    end_time: "end_time",
+    room: "room",
+    "room id": "room_id",
+    room_id: "room_id"
+}
+
+function parseCsv(text) {
+    const rows = []
+    let row = []
+    let field = ""
+    let inQuotes = false
+
+    for (let index = 0; index < text.length; index++) {
+        const char = text[index]
+        const next = text[index + 1]
+
+        if (inQuotes) {
+            if (char === '"' && next === '"') {
+                field += '"'
+                index++
+            } else if (char === '"') {
+                inQuotes = false
+            } else {
+                field += char
+            }
+        } else if (char === '"') {
+            inQuotes = true
+        } else if (char === ",") {
+            row.push(field.trim())
+            field = ""
+        } else if (char === "\n") {
+            row.push(field.trim())
+            rows.push(row)
+            row = []
+            field = ""
+        } else if (char !== "\r") {
+            field += char
+        }
+    }
+
+    if (field.length > 0 || row.length > 0) {
+        row.push(field.trim())
+        rows.push(row)
+    }
+
+    return rows.filter((entry) => entry.some((cell) => cell !== ""))
+}
+
+function parseDay(value) {
+    const text = String(value || "").trim().toLowerCase()
+    if (/^[1-7]$/.test(text)) return Number(text)
+    return DAY_ALIASES[text] || null
+}
+
+function parseTime(value) {
+    const text = String(value || "").trim().toUpperCase()
+    const match = text.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/)
+    if (!match) return text
+
+    let hour = Number(match[1])
+    const minute = match[2]
+    const meridiem = match[3]
+
+    if (meridiem === "PM" && hour < 12) hour += 12
+    if (meridiem === "AM" && hour === 12) hour = 0
+
+    return `${String(hour).padStart(2, "0")}:${minute}`
+}
+
 function ScheduleManager() {
+    const { labs } = useContext(UserContext)
     const [tab, setTab] = useState("schedules")
     const [semesters, setSemesters] = useState([])
     const [schedules, setSchedules] = useState([])
     const [events, setEvents] = useState([])
+    const [instructors, setInstructors] = useState([])
     const [scheduleFilter, setScheduleFilter] = useState("")
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
@@ -72,27 +173,35 @@ function ScheduleManager() {
     const [eventForm, setEventForm] = useState(emptyEvent)
     const [saving, setSaving] = useState(false)
     const [formError, setFormError] = useState("")
+    const [showImport, setShowImport] = useState(false)
+    const [csvText, setCsvText] = useState("")
+    const [importing, setImporting] = useState(false)
+    const [importError, setImportError] = useState("")
 
     const loadData = async () => {
         setError("")
         try {
-            const [semestersRes, schedulesRes, eventsRes] = await Promise.all([
+            const [semestersRes, schedulesRes, eventsRes, instructorsRes] = await Promise.all([
                 fetch(`${API}/api/schedule/semesters`, { credentials: "include" }),
                 fetch(`${API}/api/schedule/semester-schedules`, { credentials: "include" }),
-                fetch(`${API}/api/schedule/master-events`, { credentials: "include" })
+                fetch(`${API}/api/schedule/master-events`, { credentials: "include" }),
+                fetch(`${API}/api/schedule/instructors`, { credentials: "include" })
             ])
 
             const semestersData = await semestersRes.json()
             const schedulesData = await schedulesRes.json()
             const eventsData = await eventsRes.json()
+            const instructorsData = await instructorsRes.json()
 
             if (!semestersRes.ok) throw new Error(semestersData.message || "Failed to load semesters")
             if (!schedulesRes.ok) throw new Error(schedulesData.message || "Failed to load the schedule")
             if (!eventsRes.ok) throw new Error(eventsData.message || "Failed to load the calendar")
+            if (!instructorsRes.ok) throw new Error(instructorsData.message || "Failed to load instructors")
 
             setSemesters(semestersData.semesters)
             setSchedules(schedulesData.schedules)
             setEvents(eventsData.events)
+            setInstructors(instructorsData.instructors)
         } catch (err) {
             setError(err.message)
         } finally {
@@ -116,7 +225,13 @@ function ScheduleManager() {
 
     const openSemesterEditor = (semester = null) => {
         setSemesterForm(semester
-            ? { school_year: semester.school_year, term: semester.term, is_active: semester.is_active }
+            ? {
+                school_year: semester.school_year,
+                term: semester.term,
+                starts_on: semester.starts_on ? String(semester.starts_on).slice(0, 10) : "",
+                ends_on: semester.ends_on ? String(semester.ends_on).slice(0, 10) : "",
+                is_active: semester.is_active
+            }
             : { ...emptySemester })
         setFormError("")
         setEditor({ type: "semester", id: semester?.id || null })
@@ -135,7 +250,8 @@ function ScheduleManager() {
                 day_of_week: Number(schedule.day_of_week),
                 start_time: shortTime(schedule.start_time),
                 end_time: shortTime(schedule.end_time),
-                room: schedule.room || ""
+                room: schedule.room || "",
+                room_id: schedule.room_id ? String(schedule.room_id) : ""
             }
             : { ...emptySchedule, semester_id: defaultSemesterId() })
         setFormError("")
@@ -180,6 +296,8 @@ function ScheduleManager() {
             const payload = {
                 school_year: semesterForm.school_year,
                 term: semesterForm.term,
+                starts_on: semesterForm.starts_on || null,
+                ends_on: semesterForm.ends_on || null,
                 is_active: Boolean(semesterForm.is_active)
             }
 
@@ -251,6 +369,69 @@ function ScheduleManager() {
             setFormError(err.message)
         } finally {
             setSaving(false)
+        }
+    }
+
+    const importCsv = async () => {
+        setImporting(true)
+        setImportError("")
+
+        try {
+            const semesterId = scheduleFilter || defaultSemesterId()
+            if (!semesterId) throw new Error("Select a semester first")
+
+            const rows = parseCsv(csvText)
+            if (rows.length < 2) throw new Error("CSV needs a header row and at least one data row")
+
+            const headers = rows[0].map((header) => CSV_HEADERS[header.trim().toLowerCase()] || header.trim().toLowerCase())
+
+            const entries = rows.slice(1).map((row, index) => {
+                const item = {}
+                headers.forEach((header, column) => {
+                    item[header] = row[column] ? row[column].trim() : ""
+                })
+
+                const room = labs.find((lab) => (
+                    String(lab.id) === String(item.room_id)
+                    || String(lab.name).toLowerCase() === String(item.room).toLowerCase()
+                ))
+
+                if (!room) throw new Error(`Row ${index + 2}: room not found`)
+                if (!item.course || !item.subject || !item.section) {
+                    throw new Error(`Row ${index + 2}: course, section, and subject are required`)
+                }
+
+                const day = parseDay(item.day_of_week)
+                if (!day) throw new Error(`Row ${index + 2}: invalid day`)
+
+                return {
+                    semester_id: Number(semesterId),
+                    course: item.course,
+                    year_level: item.year_level || "1st Year",
+                    section: item.section,
+                    subject_code: item.subject_code || "",
+                    subject: item.subject,
+                    instructor: item.instructor || "",
+                    day_of_week: day,
+                    start_time: parseTime(item.start_time),
+                    end_time: parseTime(item.end_time),
+                    room_id: room.id,
+                    room: room.name
+                }
+            })
+
+            await request("/api/schedule/semester-schedules/import", {
+                method: "POST",
+                body: JSON.stringify({ semester_id: Number(semesterId), entries })
+            })
+
+            setShowImport(false)
+            setCsvText("")
+            await loadData()
+        } catch (err) {
+            setImportError(err.message)
+        } finally {
+            setImporting(false)
         }
     }
 
@@ -341,6 +522,14 @@ function ScheduleManager() {
                                 </select>
                             </div>
                             <button
+                                className="ghost-btn"
+                                onClick={() => { setShowImport(true); setImportError("") }}
+                                disabled={semesters.length === 0}
+                                title={semesters.length === 0 ? "Create a semester first" : ""}
+                            >
+                                <Upload size={16} /> Import CSV
+                            </button>
+                            <button
                                 className="primary-btn"
                                 onClick={() => openScheduleEditor()}
                                 disabled={semesters.length === 0}
@@ -392,7 +581,7 @@ function ScheduleManager() {
                                                 <span className="day-pill">{dayLabel(item.day_of_week)}</span>
                                                 <div className="muted">{shortTime(item.start_time)}–{shortTime(item.end_time)}</div>
                                             </td>
-                                            <td>{item.room || "TBA"}</td>
+                                            <td>{item.room_name || item.room || "TBA"}</td>
                                             <td>
                                                 <div className="row-actions">
                                                     <button className="icon-btn" title="Edit" onClick={() => openScheduleEditor(item)}>
@@ -575,6 +764,22 @@ function ScheduleManager() {
                                 {TERMS.map(term => <option key={term} value={term}>{term}</option>)}
                             </select>
                         </div>
+                        <div className="form-field">
+                            <label>Starts On</label>
+                            <input
+                                type="date"
+                                value={semesterForm.starts_on}
+                                onChange={(event) => setSemesterForm(prev => ({ ...prev, starts_on: event.target.value }))}
+                            />
+                        </div>
+                        <div className="form-field">
+                            <label>Ends On</label>
+                            <input
+                                type="date"
+                                value={semesterForm.ends_on}
+                                onChange={(event) => setSemesterForm(prev => ({ ...prev, ends_on: event.target.value }))}
+                            />
+                        </div>
                         <div className="form-field full">
                             <label className="checkbox-field" style={{ textTransform: "none", letterSpacing: 0 }}>
                                 <input
@@ -642,11 +847,16 @@ function ScheduleManager() {
                         </div>
                         <div className="form-field">
                             <label>Room</label>
-                            <input
-                                placeholder="Lab 1"
-                                value={scheduleForm.room}
-                                onChange={(event) => setScheduleForm(prev => ({ ...prev, room: event.target.value }))}
-                            />
+                            <select
+                                required
+                                value={scheduleForm.room_id}
+                                onChange={(event) => setScheduleForm(prev => ({ ...prev, room_id: event.target.value }))}
+                            >
+                                <option value="">Select a laboratory</option>
+                                {labs.map((lab) => (
+                                    <option key={lab.id} value={lab.id}>{lab.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="form-field">
                             <label>Subject Code</label>
@@ -667,11 +877,24 @@ function ScheduleManager() {
                         </div>
                         <div className="form-field full">
                             <label>Instructor</label>
-                            <input
-                                placeholder="Prof. Dela Cruz"
+                            <select
                                 value={scheduleForm.instructor}
                                 onChange={(event) => setScheduleForm(prev => ({ ...prev, instructor: event.target.value }))}
-                            />
+                            >
+                                <option value="">Unassigned / TBA</option>
+                                {scheduleForm.instructor
+                                    && !instructors.some((instructor) => instructor.name === scheduleForm.instructor)
+                                    && (
+                                        <option value={scheduleForm.instructor}>
+                                            {scheduleForm.instructor} (not in teacher accounts)
+                                        </option>
+                                    )}
+                                {instructors.map((instructor) => (
+                                    <option key={instructor.id} value={instructor.name}>
+                                        {instructor.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="form-field">
                             <label>Day</label>
@@ -803,6 +1026,61 @@ function ScheduleManager() {
                         <button type="submit" className="primary-btn" disabled={saving}>{saving ? "Saving..." : "Save Event"}</button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* CSV import */}
+            <Modal isOpen={showImport} onClose={() => setShowImport(false)} title="Import Class Schedule (CSV)">
+                <div className="schedule-form">
+                    {importError && <div className="form-error">{importError}</div>}
+
+                    <p style={{ margin: 0, fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
+                        Header row: <code>course, year_level, section, subject_code, subject, instructor, day, start_time, end_time, room</code>.
+                        Day can be 1–7 or a weekday name. Room can be the laboratory name or id.
+                    </p>
+
+                    <div className="form-field">
+                        <label>Target Semester</label>
+                        <select
+                            value={scheduleFilter || defaultSemesterId()}
+                            onChange={(event) => setScheduleFilter(event.target.value)}
+                        >
+                            {semesters.map((semester) => (
+                                <option key={semester.id} value={semester.id}>
+                                    {semester.school_year} · {semester.term}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-field">
+                        <label>CSV File</label>
+                        <input
+                            type="file"
+                            accept=".csv,text/csv"
+                            onChange={async (event) => {
+                                const file = event.target.files?.[0]
+                                if (file) setCsvText(await file.text())
+                            }}
+                        />
+                    </div>
+
+                    <div className="form-field">
+                        <label>Or paste CSV</label>
+                        <textarea
+                            style={{ minHeight: 160 }}
+                            placeholder={"course,year_level,section,subject_code,subject,instructor,day,start_time,end_time,room\nBSIT,1st Year,A,IT101,Introduction to Computing,Prof. Cruz,Monday,08:00,09:30,Lab 1"}
+                            value={csvText}
+                            onChange={(event) => setCsvText(event.target.value)}
+                        />
+                    </div>
+
+                    <div className="form-actions">
+                        <button type="button" className="ghost-btn" onClick={() => setShowImport(false)}>Cancel</button>
+                        <button type="button" className="primary-btn" onClick={importCsv} disabled={importing || !csvText.trim()}>
+                            <Upload size={16} /> {importing ? "Importing..." : "Import Entries"}
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </div>
     )

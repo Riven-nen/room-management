@@ -27,7 +27,7 @@ function BookingsManager() {
 
     const fetchReservations = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/all`, { credentials: "include" })
+            const res = await fetch(`/api/reservation/all`, { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setReservations(data.reservations)
@@ -45,7 +45,7 @@ function BookingsManager() {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reservation/update-status`, {
+            const res = await fetch(`/api/reservation/update-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

@@ -1,27 +1,40 @@
 import './Login.css'
 import logo from '../assets/logo.png'
-import {useState, useContext} from 'react'
-import {UserContext} from './UserContext.jsx'
+import { Link } from 'react-router-dom'
+import { useState, useContext } from 'react'
+import { UserContext } from './UserContext.jsx'
 
-function Login({ onSwitchToRegister }) {
+function Login() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const {setUser} = useContext(UserContext)
+    const [error, setError] = useState("")
+    const [submitting, setSubmitting] = useState(false)
+    const { setUser } = useContext(UserContext)
 
     const handleSubmit = async (event) => {
         event.preventDefault()
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ email, password })
-        })
+        setError("")
+        setSubmitting(true)
 
-        const data = await response.json()
-        if (response.ok) {
-            setUser(data.user)
-        } else {
-            alert(data.message || "Invalid credentials")
+        try {
+            const response = await fetch(`/api/auth/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ email, password })
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                setUser(data.user)
+            } else {
+                setError(data.message || "Invalid credentials")
+            }
+        } catch {
+            setError("Network error. Please try again.")
+        } finally {
+            setSubmitting(false)
         }
     }
 
@@ -30,11 +43,15 @@ function Login({ onSwitchToRegister }) {
             <div className="login-container">
                 <img src={logo} id="logo" alt="Logo"/>
                 <h1 id="login-title">LCUP Laboratory</h1>
+
+                {error && <p className="login-error" role="alert">{error}</p>}
+
                 <form className="login-form" onSubmit={handleSubmit}>
                     <div className="prompt-label-box">
                         <label>Email Address</label>
                         <input 
                             type="email" required className="prompt-box"
+                            autoComplete="email"
                             value={email} onChange={(event) => setEmail(event.target.value)}
                         />
                     </div>
@@ -43,6 +60,7 @@ function Login({ onSwitchToRegister }) {
                         <label>Password</label>
                         <input 
                             type="password" required className="prompt-box"
+                            autoComplete="current-password"
                             value={password} onChange={(event) => setPassword(event.target.value)}
                         />
                     </div>
@@ -52,11 +70,12 @@ function Login({ onSwitchToRegister }) {
                             <input type="checkbox" id="remember"/>
                             <label htmlFor="remember">Remember Me</label>
                         </div>
-                        {/* WIRE UP REGISTER LINK */}
-                        <a href="#" onClick={(e) => { e.preventDefault(); onSwitchToRegister(); }}>Register Account</a>
+                        <Link to="/register">Register Account</Link>
                     </div>
 
-                    <button className="submit" type="submit"> Login </button>
+                    <button className="submit" type="submit" disabled={submitting}>
+                        {submitting ? "Signing in..." : "Login"}
+                    </button>
                 </form>
             </div>
         </div>

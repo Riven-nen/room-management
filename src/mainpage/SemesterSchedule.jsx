@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react"
-import { CalendarDays, Search, Clock, MapPin, User, GraduationCap, BookOpen } from "lucide-react"
+import { CalendarDays, Search, Clock, MapPin, User, GraduationCap, BookOpen, Printer } from "lucide-react"
 import { TableSkeleton } from "../layout/Loading.jsx"
 import "./Schedules.css"
 
-const API = import.meta.env.VITE_API_URL
+const API = ""
 const DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 const formatTime = (value) => {
@@ -136,6 +136,9 @@ function SemesterSchedule() {
                         <span className="hero-chip"><CalendarDays size={14} /> {semesterLabel(selectedSemester)}</span>
                     )}
                     <span className="hero-chip"><BookOpen size={14} /> {schedules.length} class{schedules.length === 1 ? "" : "es"}</span>
+                    <button className="ghost-btn" type="button" onClick={() => window.print()}>
+                        <Printer size={16} /> Print
+                    </button>
                 </div>
             </div>
 
@@ -263,7 +266,7 @@ function SemesterSchedule() {
                                         </td>
                                         <td>
                                             <span className="room-cell">
-                                                <MapPin size={14} /> {item.room || "TBA"}
+                                                <MapPin size={14} /> {item.room_name || item.room || "TBA"}
                                             </span>
                                         </td>
                                     </tr>
