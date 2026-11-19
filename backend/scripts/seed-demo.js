@@ -4,8 +4,7 @@ const DEMO_SEMESTER = {
     school_year: "2026-2027",
     term: "1st Semester",
     starts_on: "2026-08-03",
-    ends_on: "2026-12-19",
-    is_active: true
+    ends_on: "2026-12-19"
 }
 
 const DEMO_EVENTS = [
@@ -63,6 +62,9 @@ const DEMO_SCHEDULE = [
         )).rows[0]
 
         if (!semester) {
+            const active = await db.query("SELECT id FROM semesters WHERE is_active = true LIMIT 1")
+            const shouldActivate = active.rows.length === 0
+
             const { rows } = await db.query(
                 `INSERT INTO semesters (school_year, term, starts_on, ends_on, is_active)
                  VALUES ($1, $2, $3, $4, $5)
@@ -72,11 +74,15 @@ const DEMO_SCHEDULE = [
                     DEMO_SEMESTER.term,
                     DEMO_SEMESTER.starts_on,
                     DEMO_SEMESTER.ends_on,
-                    DEMO_SEMESTER.is_active
+                    shouldActivate
                 ]
             )
             semester = rows[0]
-            console.log(`Created semester ${semester.school_year} ${semester.term}`)
+            console.log(`Created semester ${semester.school_year} ${semester.term}${shouldActivate ? "" : " (another semester is active)"}`)
+
+            if (!shouldActivate) {
+                console.log("Set this semester active from Manage Schedules if you want it shown by default.")
+            }
         } else {
             console.log(`Using existing semester ${semester.school_year} ${semester.term}`)
         }
