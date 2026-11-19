@@ -4,6 +4,7 @@ import Modal from "../layout/Modal.jsx"
 import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck, Upload } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
 import { PageSkeleton } from "../layout/Loading.jsx"
+import { notifyScheduleChanged } from "../lib/dataEvents.js"
 import "./Schedules.css"
 
 const API = ""
@@ -309,6 +310,7 @@ function ScheduleManager() {
 
             closeEditor()
             await loadData()
+            notifyScheduleChanged()
         } catch (err) {
             setFormError(err.message)
         } finally {
@@ -336,6 +338,7 @@ function ScheduleManager() {
 
             closeEditor()
             await loadData()
+            notifyScheduleChanged()
         } catch (err) {
             setFormError(err.message)
         } finally {
@@ -365,6 +368,7 @@ function ScheduleManager() {
 
             closeEditor()
             await loadData()
+            notifyScheduleChanged()
         } catch (err) {
             setFormError(err.message)
         } finally {
@@ -428,6 +432,7 @@ function ScheduleManager() {
             setShowImport(false)
             setCsvText("")
             await loadData()
+            notifyScheduleChanged()
         } catch (err) {
             setImportError(err.message)
         } finally {
@@ -454,6 +459,7 @@ function ScheduleManager() {
         try {
             await request(urls[type], { method: "DELETE" })
             await loadData()
+            notifyScheduleChanged()
         } catch (err) {
             setError(err.message)
         }
@@ -854,7 +860,9 @@ function ScheduleManager() {
                             >
                                 <option value="">Select a laboratory</option>
                                 {labs.map((lab) => (
-                                    <option key={lab.id} value={lab.id}>{lab.name}</option>
+                                    <option key={lab.id} value={lab.id} disabled={lab.maintenance}>
+                                        {lab.name}{lab.maintenance ? " (Under Maintenance)" : ""}
+                                    </option>
                                 ))}
                             </select>
                         </div>

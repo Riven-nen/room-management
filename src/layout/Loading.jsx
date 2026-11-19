@@ -8,7 +8,7 @@ export function SystemLoader({ label = "Loading system..." }) {
         <div className="system-loader" role="status" aria-live="polite">
             <div className="system-loader-card">
                 <img src={logo} alt="" />
-                <h1>LCUP Laboratory</h1>
+                <h1>LabEase</h1>
                 <p>{label}</p>
                 <div className="system-loader-progress"><span /></div>
             </div>

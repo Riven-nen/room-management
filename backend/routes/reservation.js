@@ -23,6 +23,12 @@ async function findClassConflict(roomId, start, end) {
           AND ss.end_time > $2::time
           AND (s.starts_on IS NULL OR $2::date >= s.starts_on)
           AND (s.ends_on IS NULL OR $2::date <= s.ends_on)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM class_cancellations c
+              WHERE c.schedule_id = ss.id
+                AND c.cancelled_on = $2::date
+          )
         LIMIT 1
     `, [roomId, start, end])
 
@@ -80,8 +86,43 @@ router.get("/all", requireAuth, async (req, res) => {
         `)
 
         const isStaff = req.user.role !== "student"
+        const blocks = await db.query(`
+            SELECT ss.id AS schedule_id,
+                   ss.semester_id,
+                   s.school_year,
+                   s.term,
+                   d::date AS date,
+                   ss.start_time,
+                   ss.end_time,
+                   ss.room_id,
+                   rooms.name AS room_name,
+                   ss.subject,
+                   ss.subject_code,
+                   ss.course,
+                   ss.year_level,
+                   ss.section,
+                   ss.instructor,
+                   ss.instructor_id
+            FROM semester_schedules ss
+            JOIN semesters s ON s.id = ss.semester_id
+            LEFT JOIN rooms ON rooms.id = ss.room_id
+            CROSS JOIN LATERAL generate_series(s.starts_on, s.ends_on, interval '1 day') AS d
+            WHERE s.starts_on IS NOT NULL
+              AND s.ends_on IS NOT NULL
+              AND extract(isodow FROM d) = ss.day_of_week
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM class_cancellations c
+                  WHERE c.schedule_id = ss.id
+                    AND c.cancelled_on = d::date
+              )
+            ORDER BY d ASC, ss.start_time ASC
+        `)
+        const classBlocks = blocks.rows
+
         res.json({
-            reservations: rows.map(isStaff ? staffReservation : publicReservation)
+            reservations: rows.map(isStaff ? staffReservation : publicReservation),
+            classBlocks
         })
     } catch (error) {
         console.error(error)
@@ -307,8 +348,9 @@ router.put("/update-status", requireAuth, requireCapability("bookingManage"), as
         if (resInfo.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
 
         const { reserved_by, room_name, coordinator_id } = resInfo.rows[0]
+        const canManageAll = req.user.role === "admin" || req.user.role === "mis_staff"
 
-        if (req.user.role !== "admin" && String(coordinator_id) !== String(req.user.id)) {
+        if (!canManageAll && String(coordinator_id) !== String(req.user.id)) {
             return res.status(403).json({ error: "You can only manage bookings for laboratories you coordinate" })
         }
 
@@ -342,7 +384,11 @@ router.delete("/delete", requireAuth, async (req, res) => {
         if (resRes.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
         const reservation = resRes.rows[0]
 
-        if (user.role !== "admin" && String(user.id) !== String(reservation.reserved_by)) {
+        const canDelete = user.role === "admin"
+            || user.role === "mis_staff"
+            || String(user.id) === String(reservation.reserved_by)
+
+        if (!canDelete) {
             return res.status(403).json({ error: "You do not have permission to cancel this booking" })
         }
 

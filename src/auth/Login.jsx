@@ -42,7 +42,7 @@ function Login() {
         <div className="login-page">
             <div className="login-container">
                 <img src={logo} id="logo" alt="Logo"/>
-                <h1 id="login-title">LCUP Laboratory</h1>
+                <h1 id="login-title">LabEase</h1>
 
                 {error && <p className="login-error" role="alert">{error}</p>}
 

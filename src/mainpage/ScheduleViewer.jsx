@@ -6,6 +6,8 @@ import { UserContext } from "../auth/UserContext.jsx"
 import { MapPin, CheckCircle2, XCircle, Wrench, Clock, CalendarClock } from "lucide-react"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import { CalendarSkeleton } from "../layout/Loading.jsx"
+import { formatClassBlocks } from "../lib/classBlocks.js"
+import { subscribeToDataChanges } from "../lib/dataEvents.js"
 import "./ScheduleViewer.css"
 
 const locales = { "en-US": enUS }
@@ -28,11 +30,19 @@ const parseLocal = (value) => {
 function ScheduleViewer() {
     const { labs } = useContext(UserContext)
     const [reservations, setReservations] = useState([])
+    const [classBlocks, setClassBlocks] = useState([])
     const [loading, setLoading] = useState(true)
     const [filterRoom, setFilterRoom] = useState("all")
     
     const [currentDate, setCurrentDate] = useState(new Date())
     const [currentView, setCurrentView] = useState(Views.WEEK)
+    const [refreshKey, setRefreshKey] = useState(0)
+
+    useEffect(() => {
+        return subscribeToDataChanges(["schedule:changed", "bookings:changed"], () => {
+            setRefreshKey((value) => value + 1)
+        })
+    }, [])
 
     useEffect(() => {
         const fetchReservations = async () => {
@@ -52,6 +62,7 @@ function ScheduleViewer() {
                         }
                     })
                     setReservations(formatted)
+                    setClassBlocks(formatClassBlocks(data.classBlocks || []))
                 }
             } catch (error) {
                 console.error("Failed to load schedule", error)
@@ -61,32 +72,35 @@ function ScheduleViewer() {
         }
 
         fetchReservations()
-    }, [])
+    }, [refreshKey])
 
-    // FIXED FILTER LOGIC
-    const filteredEvents = filterRoom === "all" 
-        ? reservations 
-        : reservations.filter(r => {
-            const selectedLab = labs.find(l => String(l.id) === String(filterRoom))
-            return selectedLab && String(r.room) === String(selectedLab.name)
-        })
+    const selectedLab = labs.find(l => String(l.id) === String(filterRoom))
+    const roomMatches = (event) => filterRoom === "all" || (selectedLab && String(event.room) === String(selectedLab.name))
+
+    const filteredEvents = [
+        ...reservations.filter(roomMatches),
+        ...classBlocks.filter(roomMatches)
+    ]
 
     const now = new Date()
+    const occupancyEvents = [
+        ...reservations.filter(r => r.status === "approved"),
+        ...classBlocks
+    ]
 
     const labStatuses = labs.map(lab => {
         if (lab.maintenance) {
             return { ...lab, status: "Maintenance", currentClass: null, nextClass: null }
         }
         
-        const currentClass = reservations.find(r => 
+        const currentClass = occupancyEvents.find(r => 
             String(r.room) === String(lab.name) && 
-            r.status === "approved" && 
             now >= r.start && 
             now <= r.end
         )
 
-        const futureClasses = reservations
-            .filter(r => String(r.room) === String(lab.name) && r.status === "approved" && r.start > now)
+        const futureClasses = occupancyEvents
+            .filter(r => String(r.room) === String(lab.name) && r.start > now)
             .sort((a, b) => a.start - b.start)
             
         const nextClass = futureClasses.length > 0 ? futureClasses[0] : null
@@ -118,7 +132,7 @@ function ScheduleViewer() {
             <div className="schedule-viewer-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1>Laboratory Schedule Viewer</h1>
-                    <p>View real-time availability, live lab status, and weekly schedules.</p>
+                    <p>View real-time availability, live lab status, weekly reservations, and semester class blocks.</p>
                 </div>
 
                 <select 
@@ -174,14 +188,14 @@ function ScheduleViewer() {
                             ) : (
                                 <div style={{ backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#166534' }}>
                                     <p style={{ margin: 0, fontWeight: 'bold' }}>Available for class</p>
-                                    <p style={{ margin: '4px 0 0 0' }}>No active bookings right now.</p>
+                                    <p style={{ margin: '4px 0 0 0' }}>No active bookings or classes right now.</p>
                                 </div>
                             )}
 
                             {lab.nextClass && (
                                 <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#475569', borderTop: '1px solid #e2e8f0' }}>
                                     <p style={{ margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', color: '#00195c' }}>
-                                        <CalendarClock size={14} /> Next Booking
+                                        <CalendarClock size={14} /> Next Booking / Class
                                     </p>
                                     <p style={{ margin: '4px 0 0 0' }}>{formatNextClass(lab.nextClass.start)}</p>
                                     <p style={{ margin: '2px 0 0 0', color: '#64748b' }}>{lab.nextClass.user}</p>
@@ -205,6 +219,9 @@ function ScheduleViewer() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ width: '12px', height: '12px', backgroundColor: '#dc2626', borderRadius: '3px' }}></span> Rejected
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', backgroundColor: '#0d3a8f', border: '2px solid #f5c542', borderRadius: '3px' }}></span> Class Schedule
                         </div>
                     </div>
                 </div>
@@ -230,14 +247,15 @@ function ScheduleViewer() {
                         popup
                         eventPropGetter={(event) => ({
                             style: {
-                                backgroundColor:
-                                    event.status === "approved" ? "#16a34a" :
-                                    event.status === "pending"   ? "#f59e0b" :
-                                    event.status === "rejected"  ? "#dc2626" :
-                                    event.status === "cancelled" ? "#6b7280" : "#2563eb",
+                                backgroundColor: event.isClass
+                                    ? "#0d3a8f"
+                                    : event.status === "approved" ? "#16a34a" :
+                                      event.status === "pending"   ? "#f59e0b" :
+                                      event.status === "rejected"  ? "#dc2626" :
+                                      event.status === "cancelled" ? "#6b7280" : "#2563eb",
                                 borderRadius: "4px",
                                 color: "white",
-                                border: "none"
+                                border: event.isClass ? "2px solid #f5c542" : "none"
                             }
                         })}
                         style={{ height: 600 }}

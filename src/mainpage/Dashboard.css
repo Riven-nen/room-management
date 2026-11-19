@@ -35,19 +35,6 @@
     font-weight: bold;
 }
 
-.dashboard-title-export {
-    width: 170px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #00195c;
-    height: 40px;
-    border-radius: 6px;
-    color: white;
-    font-weight: bold;
-    gap: 4px;
-}
-
 .dashboard-content {
     width: 100%;
     display: grid;

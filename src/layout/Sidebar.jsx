@@ -33,7 +33,7 @@ function Sidebar({ isOpen = false, onClose }) {
         { to: "/class-schedule", label: "Class Schedule", icon: CalendarDays, roles: PAGE_ACCESS.classSchedule },
         { to: "/university-calendar", label: "University Calendar", icon: CalendarRange, roles: PAGE_ACCESS.universityCalendar },
         { to: "/lab-schedule", label: "Lab Schedule", icon: Calendar, roles: PAGE_ACCESS.labSchedule },
-        { to: "/bookings", label: "Work Booking", icon: BookIcon, roles: PAGE_ACCESS.bookings },
+        { to: "/bookings", label: "Lab Reservation", icon: BookIcon, roles: PAGE_ACCESS.bookings },
         { to: "/manage-bookings", label: "Manage Bookings", icon: ClipboardList, roles: PAGE_ACCESS.manageBookings },
         { to: "/admin/schedules", label: "Manage Schedules", icon: ShieldCheck, roles: PAGE_ACCESS.scheduleManager },
         { to: "/admin/registration-codes", label: "Registration Codes", icon: KeyRound, roles: PAGE_ACCESS.inviteCodes },
@@ -54,7 +54,7 @@ function Sidebar({ isOpen = false, onClose }) {
         <div className={`sidebar-container ${isOpen ? "sidebar-open" : ""}`}>
             <div className="sidebar-title">
                 <img src={logo} alt="Logo" />
-                <h3>LCUP <br /> Laboratory</h3>
+                <h3>LabEase</h3>
                 <button className="sidebar-close" type="button" onClick={onClose} aria-label="Close navigation">
                     <X size={18} />
                 </button>
@@ -82,7 +82,7 @@ function Sidebar({ isOpen = false, onClose }) {
             <div className="sidebar-bottom">
                 {canSee(PAGE_ACCESS.bookings) && (
                     <NavLink className="new-booking" to="/bookings" onClick={onClose}>
-                        + New Work Booking
+                        + New Lab Reservation
                     </NavLink>
                 )}
                 

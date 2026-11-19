@@ -1,10 +1,12 @@
-# LCUP Laboratory Management System
+# LabEase
+
+**Laboratory and room management for La Consolacion University Philippines (LCUP).**
 
 **Status:** Delivered / Freelance Project
 **Client:** La Consolacion University Philippines (LCUP)
 
 ## Project Overview
-A full-stack web application designed to streamline the scheduling, maintenance tracking, and analytics for university computer laboratories. The system was built to address specific administrative requirements, including role-based access, coordinator approval workflows, and real-time facility monitoring.
+LabEase is a full-stack web application designed to streamline the scheduling, maintenance tracking, and analytics for university computer laboratories. It was built to address specific administrative requirements, including role-based access, coordinator approval workflows, and real-time facility monitoring.
 
 ## Key Features
 - Role-Based Access Control (RBAC): Distinct interfaces for Students, Faculty, MIS Staff, and Admins.
@@ -14,6 +16,9 @@ A full-stack web application designed to streamline the scheduling, maintenance 
 - Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
 - Notification System: In-app alerts for new requests and approval status changes.
 - Semester Class Schedule: Admin-published, searchable by course, section, year level, subject, instructor, and room.
+- Class Blocks in Bookings: staff see semester class slots in the reservation calendar, so conflicts are visible before booking.
+- Lab Schedule Viewer: the weekly timetable includes both reservations and semester class blocks; live lab status also considers scheduled classes.
+- Per-Date Class Cancellations: the assigned instructor, Admin, or MIS can cancel one class occurrence (e.g., instructor leave), which frees that room and date for booking.
 - University Master Calendar: Admin-managed holidays, exams, enrollment periods, and university events.
 - Registration Codes: Hashed, expiring, revocable codes protect Faculty, Admin, and MIS Staff sign-ups.
 - User Management: Admins can change roles, deactivate accounts, and issue temporary passwords.
@@ -23,8 +28,11 @@ A full-stack web application designed to streamline the scheduling, maintenance 
 
 Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
+- `mis_staff` is the laboratory/room operations staff role — handles room schedules, labs, bookings, and analytics.
+
 - All signed-in users can view the **Class Schedule** and **University Calendar**.
-- Only `admin` can create, edit, or delete semesters, class schedule entries, master calendar events, registration codes, and user accounts.
+- `admin` and `mis_staff` can manage semesters, class schedule entries, the university calendar, laboratories, bookings, and analytics.
+- Only `admin` can create or revoke registration codes and manage user accounts.
 - `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a registration code generated from **Registration Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.
 

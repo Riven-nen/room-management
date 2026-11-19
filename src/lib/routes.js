@@ -46,7 +46,7 @@ export const ROUTES = [
     {
         key: "bookings",
         path: "/bookings",
-        title: "Work Booking",
+        title: "Lab Reservation",
         component: Reservation,
         roles: permissions.pages.bookings
     },

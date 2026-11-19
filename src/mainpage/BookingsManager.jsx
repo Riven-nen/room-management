@@ -5,6 +5,7 @@ import { Check, X, Search, MapPin } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
 import { normalizeRole } from "../auth/roles.js"
 import { PageSkeleton } from "../layout/Loading.jsx"
+import { notifyBookingsChanged, subscribeToDataChanges } from "../lib/dataEvents.js"
 
 const parseLocal = (value) => {
     if (!value) return new Date()
@@ -43,6 +44,10 @@ function BookingsManager() {
         fetchReservations()
     }, [])
 
+    useEffect(() => {
+        return subscribeToDataChanges("bookings:changed", fetchReservations)
+    }, [])
+
     const handleUpdateStatus = async (id, status) => {
         try {
             const res = await fetch(`/api/reservation/update-status`, {
@@ -53,6 +58,7 @@ function BookingsManager() {
             })
             if (res.ok) {
                 setReservations(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+                notifyBookingsChanged()
             }
         } catch (error) {
             console.error("Failed to update status", error)
@@ -60,6 +66,7 @@ function BookingsManager() {
     }
 
     const isTeacher = normalizeRole(user.role) === "faculty"
+    const isMis = normalizeRole(user.role) === "mis_staff"
     const assignedLabs = labs.filter(lab => String(lab.coordinator_id) === String(user.id))
 
     const filteredReservations = reservations.filter(r => {
@@ -90,7 +97,7 @@ function BookingsManager() {
             
             <div className="dashboard-title">
                 <div className="dashboard-title-left">
-                    <label>{isTeacher ? "COORDINATOR HUB" : "ADMIN COMMAND CENTER"}</label>
+                    <label>{isTeacher ? "COORDINATOR HUB" : isMis ? "MIS COMMAND CENTER" : "ADMIN COMMAND CENTER"}</label>
                     <h1 style={{ margin: 0 }}>{isTeacher ? "Review Lab Requests" : "Manage All Bookings"}</h1>
                     {isTeacher && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>

@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import Card from "./Card.jsx"
 import './Dashboard.css'
-import { Calendar, Download, Book, CalendarArrowDownIcon, Wrench, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Calendar, Book, CalendarArrowDownIcon, Wrench, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
 import BarChart from '../layout/BarChart.jsx'
 import CircleChart from '../layout/CircleChart.jsx'
 import ReservationTable from '../layout/ReservationTable.jsx'
@@ -9,6 +9,7 @@ import { useContext, useEffect, useState } from 'react'
 import { UserContext } from '../auth/UserContext.jsx'
 import { normalizeRole } from '../auth/roles.js'
 import { PageSkeleton } from '../layout/Loading.jsx'
+import { notifyBookingsChanged, subscribeToDataChanges } from '../lib/dataEvents.js'
 
 function Dashboard() {
     const { user, labs } = useContext(UserContext)
@@ -42,6 +43,10 @@ function Dashboard() {
         fetchData()
     }, [])
 
+    useEffect(() => {
+        return subscribeToDataChanges("bookings:changed", fetchData)
+    }, [])
+
     const handleApprove = async (id) => {
         try {
             const res = await fetch(`/api/reservation/update-status`, {
@@ -50,7 +55,10 @@ function Dashboard() {
                 credentials: "include",
                 body: JSON.stringify({ id, status: "approved" })
             })
-            if (res.ok) setReservations(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r))
+            if (res.ok) {
+                setReservations(prev => prev.map(r => r.id === id ? { ...r, status: "approved" } : r))
+                notifyBookingsChanged()
+            }
         } catch (error) {
             console.error("FETCH ERROR:", error)
         }
@@ -64,7 +72,10 @@ function Dashboard() {
                 credentials: "include",
                 body: JSON.stringify({ id, status: "rejected" })
             })
-            if (res.ok) setReservations(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r))
+            if (res.ok) {
+                setReservations(prev => prev.map(r => r.id === id ? { ...r, status: "rejected" } : r))
+                notifyBookingsChanged()
+            }
         } catch (error) {
             console.error("FETCH ERROR:", error)
         }
@@ -90,35 +101,17 @@ function Dashboard() {
     const role = normalizeRole(user.role)
     const isAdmin = role === "admin"
     const isFaculty = role === "faculty"
+    const isMis = role === "mis_staff"
 
     const pendingToApprove = reservations.filter(res => {
         if (res.status !== "pending") return false;
-        if (isAdmin) return true;
+        if (isAdmin || isMis) return true;
         if (isFaculty) return String(res.coordinator_id) === String(user.id);
         return false;
     })
 
     const approvedCount = reservations.filter(r => r.status === "approved").length
     const totalPendingCount = reservations.filter(r => r.status === "pending").length
-
-    const exportBookings = () => {
-        const rows = [
-            ["Room", "User", "Start", "End", "Status", "Purpose", "Participants"],
-            ...reservations.map((item) => [
-                item.room, item.user, item.start, item.end, item.status, item.purpose, item.participants
-            ])
-        ]
-        const csv = rows
-            .map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
-            .join("\n")
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-        const url = URL.createObjectURL(blob)
-        const anchor = document.createElement("a")
-        anchor.href = url
-        anchor.download = "bookings-report.csv"
-        anchor.click()
-        URL.revokeObjectURL(url)
-    }
 
     if (loading) {
         return <PageSkeleton label="Loading dashboard" stats={4} chart rows={4} columns={5} />
@@ -133,7 +126,6 @@ function Dashboard() {
                 </div>
                 <div className="dashboard-title-right">
                     <button className="dashboard-title-date"> <Calendar size={16}/> {new Date().toLocaleDateString()} </button>
-                    <button className="dashboard-title-export" onClick={exportBookings}> <Download size={16}/> Export Report</button>
                 </div>
             </div>
             
@@ -233,7 +225,7 @@ function Dashboard() {
                             
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {myBookings.length === 0 ? (
-                                    <p style={{ color: '#64748b', margin: 0 }}>You have no upcoming work bookings.</p>
+                                    <p style={{ color: '#64748b', margin: 0 }}>You have no upcoming lab reservations.</p>
                                 ) : (
                                     myBookings.map(booking => (
                                         <div key={booking.id} style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #00195c', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -16,6 +16,7 @@ function Register() {
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
     const [role, setRole] = useState("student")
     const [inviteCode, setInviteCode] = useState("")
     const [error, setError] = useState("")
@@ -27,6 +28,12 @@ function Register() {
     const handleSubmit = async (event) => {
         event.preventDefault()
         setError("")
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.")
+            return
+        }
+
         setSubmitting(true)
 
         try {
@@ -63,7 +70,7 @@ function Register() {
                 <img src={logo} id="logo" alt="Logo"/>
                 <h1 id="login-title">Create Account</h1>
                 
-                {error && <p style={{color: 'red', margin: '0 0 10px 0', fontSize: '14px'}}>{error}</p>}
+                {error && <p className="login-error" role="alert">{error}</p>}
 
                 <form className="login-form" onSubmit={handleSubmit}>
                     <div className="prompt-label-box">
@@ -94,6 +101,7 @@ function Register() {
                             type="password" 
                             required 
                             minLength={8}
+                            autoComplete="new-password"
                             className="prompt-box"
                             value={password}
                             onChange={(event) => setPassword(event.target.value)}
@@ -101,6 +109,19 @@ function Register() {
                         <small style={{ display: 'block', marginTop: '4px', color: '#64748b' }}>
                             At least 8 characters.
                         </small>
+                    </div>
+
+                    <div className="prompt-label-box">
+                        <label>Confirm Password</label>
+                        <input
+                            type="password"
+                            required
+                            minLength={8}
+                            autoComplete="new-password"
+                            className="prompt-box"
+                            value={confirmPassword}
+                            onChange={(event) => setConfirmPassword(event.target.value)}
+                        />
                     </div>
 
                     <div className="prompt-label-box">

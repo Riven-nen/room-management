@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { CalendarDays, Search, Clock, MapPin, User, GraduationCap, BookOpen, Printer } from "lucide-react"
 import { TableSkeleton } from "../layout/Loading.jsx"
+import { subscribeToDataChanges } from "../lib/dataEvents.js"
 import "./Schedules.css"
 
 const API = ""
@@ -29,6 +30,7 @@ function SemesterSchedule() {
     const [search, setSearch] = useState("")
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [refreshKey, setRefreshKey] = useState(0)
 
     useEffect(() => {
         const controller = new AbortController()
@@ -58,6 +60,12 @@ function SemesterSchedule() {
     }, [])
 
     useEffect(() => {
+        return subscribeToDataChanges("schedule:changed", () => {
+            setRefreshKey((value) => value + 1)
+        })
+    }, [])
+
+    useEffect(() => {
         if (!semesterId) return
 
         const controller = new AbortController()
@@ -77,7 +85,7 @@ function SemesterSchedule() {
 
         loadFilters()
         return () => controller.abort()
-    }, [semesterId])
+    }, [semesterId, refreshKey])
 
     useEffect(() => {
         if (!semesterId) {
@@ -116,7 +124,7 @@ function SemesterSchedule() {
             clearTimeout(timer)
             controller.abort()
         }
-    }, [semesterId, course, yearLevel, section, search])
+    }, [semesterId, course, yearLevel, section, search, refreshKey])
 
     const selectedSemester = semesters.find(item => String(item.id) === String(semesterId))
     const hasFilters = Boolean(course || yearLevel || section || search.trim())

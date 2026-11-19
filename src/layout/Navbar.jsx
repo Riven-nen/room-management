@@ -129,7 +129,7 @@ function Navbar({ pageTitle, onMenuClick }) {
                         </div>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', color: '#334155' }}>
-                            <p>If you are experiencing issues with the LCUP Laboratory Management System, please reach out to the MIS Department.</p>
+                            <p>If you are experiencing issues with LabEase, please reach out to the MIS Department.</p>
                             
                             <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <strong style={{ color: '#00195c', display: 'block', marginBottom: '4px' }}>Contact Support</strong>

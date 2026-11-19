@@ -4,6 +4,7 @@ import { format, parse, startOfWeek, getDay } from "date-fns"
 import { enUS } from "date-fns/locale"
 import { CalendarRange, MapPin, Clock, Info } from "lucide-react"
 import { CalendarSkeleton, ListSkeleton } from "../layout/Loading.jsx"
+import { subscribeToDataChanges } from "../lib/dataEvents.js"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "./Schedules.css"
 
@@ -57,6 +58,13 @@ function MasterSchedule() {
     const [selected, setSelected] = useState(null)
     const [currentDate, setCurrentDate] = useState(new Date())
     const [currentView, setCurrentView] = useState(Views.MONTH)
+    const [refreshKey, setRefreshKey] = useState(0)
+
+    useEffect(() => {
+        return subscribeToDataChanges("schedule:changed", () => {
+            setRefreshKey((value) => value + 1)
+        })
+    }, [])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -79,7 +87,7 @@ function MasterSchedule() {
 
         loadEvents()
         return () => controller.abort()
-    }, [])
+    }, [refreshKey])
 
     const calendarEvents = useMemo(() => events.map(event => {
         const startDay = toDate(event.starts_on)

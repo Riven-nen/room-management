@@ -1,0 +1,6 @@
+course,year_level,section,subject_code,subject,instructor,day,start_time,end_time,room
+BSIT,1st Year,A,IT 101,Introduction to Computing,Teacher Account,Monday,13:00,14:30,MR 209
+BSIT,1st Year,A,IT 102,Computer Programming 1,Other Teacher,Tuesday,10:00,11:30,SA 304
+BSIT,2nd Year,A,IT 201,Data Structures and Algorithms,Allena Marie Felipe,Wednesday,13:00,14:30,MR 210
+BSCS,3rd Year,A,CS 301,Database Management Systems,Teacher Account,Thursday,08:00,09:30,SA 304
+BSIT,4th Year,A,IT 401,Capstone Project 1,Allena Marie Felipe,Friday,14:00,16:00,MR 209
